@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>puzzlebot_final</name>
+  <version>0.0.0</version>
+  <description>
+    Launch files for running Nav2 on the physical Puzzlebot.
+    Replaces Gazebo simulation with real hardware.
+  </description>
+  <maintainer email="ppangelhr@gmail.com">peps</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Robot description -->
+  <exec_depend>puzzlebot_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+
+  <!-- Nav2 stack -->
+  <exec_depend>nav2_bringup</exec_depend>
+
+  <!-- Real hardware drivers -->
+  <exec_depend>rplidar_ros</exec_depend>
+
+  <!-- Visualization -->
+  <exec_depend>rviz2</exec_depend>
+
+  <!-- TF -->
+  <exec_depend>tf2_ros</exec_depend>
+
+  <!-- Python scripts -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

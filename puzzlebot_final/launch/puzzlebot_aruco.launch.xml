@@ -1,0 +1,41 @@
+<launch>
+
+    <include file="/home/puzzlebot/ros2_ws/install/puzzlebot_ros/share/puzzlebot_ros/micro_ros_agent.launch.py"/>
+
+    <node pkg="rplidar_ros" exec="rplidar_node" name="rplidar_node" output="screen"
+        respawn="true" respawn_delay="3.0">
+        <param name="channel_type"     value="serial"/>
+        <param name="serial_port"      value="/dev/ttyUSB0"/>
+        <param name="serial_baudrate"  value="115200"/>
+        <param name="frame_id"         value="laser_frame"/>
+        <param name="inverted"         value="false"/>
+        <param name="angle_compensate" value="true"/>
+        <param name="scan_mode"        value="Standard"/>
+    </node>
+
+    <include file="$(find-pkg-share puzzlebot_ros)/launch/aruco_jetson.launch.py"/>
+
+    <let name="urdf_path"
+         value="$(find-pkg-share puzzlebot_description)/urdf/puzzlebot.urdf.xacro"/>
+
+    <node pkg="robot_state_publisher" exec="robot_state_publisher" output="screen">
+        <param name="robot_description"
+               value="$(command 'xacro $(var urdf_path)')"/>
+        <param name="use_sim_time" value="false"/>
+    </node>
+
+    <node pkg="puzzlebot_final"
+          exec="puzzlebot_localization.py"
+          name="puzzlebot_localization"
+          output="screen"/>
+
+    <node pkg="puzzlebot_final"
+          exec="puzzlebot_joint_state_publisher.py"
+          name="puzzlebot_joint_state_publisher"
+          output="screen"/>
+
+    <node pkg="tf2_ros" exec="static_transform_publisher"
+          name="laser_tf_fix"
+          args="0 0 0 0 0 0 laser_frame laser"/>
+
+</launch>

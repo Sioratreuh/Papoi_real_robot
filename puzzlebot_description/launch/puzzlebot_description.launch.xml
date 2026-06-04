@@ -1,0 +1,33 @@
+<launch>
+    <!-- Jose Angel Huerta Rios A01710607 - EQUIPO PAPULAND -->
+    <arg name="rviz" default="false" />
+    <arg name="gazebo" default="false" />
+    <arg name="joint_gui" default="false" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="rqt_tree" default="false" />
+
+    <let name="urdf_path" value="$(find-pkg-share puzzlebot_description)/urdf/puzzlebot.urdf.xacro" />
+    <let name="rviz_config_path" value="$(find-pkg-share puzzlebot_description)/rviz/puzzlebot_description.rviz" />
+    
+    <let name="gazebo_path" value="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py" />
+
+    <node pkg="robot_state_publisher" exec="robot_state_publisher" output="screen">
+        <param name="robot_description" value="$(command 'xacro $(var urdf_path)')" />
+        <param name="use_sim_time" value="$(var use_sim_time)" />
+    </node>
+    
+    <node pkg="rviz2" exec="rviz2" output="screen" if="$(var rviz)" args="-d $(var rviz_config_path)">
+        <param name="use_sim_time" value="$(var use_sim_time)" />
+    </node>
+
+    <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui" output="screen" if="$(var joint_gui)"/>
+    <!-- 
+    <node pkg="joint_state_publisher" exec="joint_state_publisher" output="screen" unless="$(var joint_gui)"/> -->
+
+    <include file="$(var gazebo_path)" if="$(var gazebo)">
+        <arg name="gz_args" value="empty.sdf -r" />
+    </include>
+
+    <node pkg="rqt_tf_tree" exec="rqt__tf_tree" if="$(var rqt_tree)"/>
+
+</launch>

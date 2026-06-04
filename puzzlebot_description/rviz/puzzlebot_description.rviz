@@ -1,0 +1,90 @@
+Panels:
+	- Class: rviz_common/Displays
+		Help Height: 0
+		Name: Displays
+		Property Tree Widget:
+			Expanded:
+				- /Global Options1
+				- /Status1
+				- /RobotModel1
+				- /TF1
+			Splitter Ratio: 0.5
+		Tree Height: 0
+	- Class: rviz_common/Selection
+		Name: Selection
+	- Class: rviz_common/Tool Properties
+		Name: Tool Properties
+	- Class: rviz_common/Views
+		Name: Views
+
+Visualization Manager:
+	Class: ""
+	Displays:
+		- Alpha: 0.5
+			Cell Size: 1
+			Class: rviz_default_plugins/Grid
+			Color: 160; 160; 160
+			Enabled: true
+			Name: Grid
+			Plane: XY
+			Plane Cell Count: 10
+			Reference Frame: base_link
+			Value: true
+		- Class: rviz_default_plugins/RobotModel
+			Description Source: Topic
+			Description Topic: robot_description
+			Enabled: true
+			Name: RobotModel
+			Visual Enabled: true
+		- Class: rviz_default_plugins/TF
+			Enabled: true
+			Frame Timeout: 15
+			Name: TF
+			Show Arrows: true
+			Show Axes: true
+			Show Names: true
+	Enabled: true
+	Global Options:
+		Background Color: 48; 48; 48
+		Fixed Frame: base_link
+		Frame Rate: 30
+	Name: root
+	Tools:
+		- Class: rviz_default_plugins/Interact
+		- Class: rviz_default_plugins/MoveCamera
+		- Class: rviz_default_plugins/Select
+		- Class: rviz_default_plugins/FocusCamera
+		- Class: rviz_default_plugins/Measure
+		- Class: rviz_default_plugins/SetInitialPose
+		- Class: rviz_default_plugins/SetGoal
+	Transformation:
+		Current:
+			Class: rviz_default_plugins/XYOrbit
+			Distance: 5
+			Focal Point:
+				X: 0
+				Y: 0
+				Z: 0.5
+			Pitch: 0.3
+			Target Frame: base_link
+			Yaw: 0.7
+	Value: true
+	Views:
+		Current:
+			Class: rviz_default_plugins/Orbit
+			Distance: 5
+			Enable Stereo Rendering: false
+			Focal Point:
+				X: 0
+				Y: 0
+				Z: 0.5
+			Focal Shape Fixed Size: true
+			Focal Shape: Sphere
+			Invert Z Axis: false
+			Name: Current View
+			Near Clip Distance: 0.01
+			Pitch: 0.3
+			Target Frame: base_link
+			Yaw: 0.7
+		Saved: ~
+
