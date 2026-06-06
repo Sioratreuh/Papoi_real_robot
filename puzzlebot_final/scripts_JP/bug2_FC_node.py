@@ -67,24 +67,24 @@ class Bug2Node(Node):
         self.declare_parameter('wall_follow_goal_tolerance', 0.18)
         self.declare_parameter('goal_pass_margin', 0.02)
         self.declare_parameter('goal_pass_lateral_tolerance', 0.22)
-        self.declare_parameter('near_goal_slow_distance', 0.20)
-        self.declare_parameter('near_goal_v_max', 0.06)
+        self.declare_parameter('near_goal_slow_distance', 0.10)
+        self.declare_parameter('near_goal_v_max', 0.10)
         self.declare_parameter('m_line_tolerance', 0.10)
         self.declare_parameter('min_hit_separation', 0.35)
         self.declare_parameter('hit_return_tolerance', 0.18)
         self.declare_parameter('m_line_goal_improvement', 0.12)
         self.declare_parameter('k_rho', 0.8)
         self.declare_parameter('k_alpha', 1.5)
-        self.declare_parameter('v_max', 0.15)
+        self.declare_parameter('v_max', 0.25)
         self.declare_parameter('w_max', 0.40)
-        self.declare_parameter('heading_tolerance', 0.15)
-        self.declare_parameter('min_forward_speed', 0.02)
+        self.declare_parameter('heading_tolerance', 0.18) #samr as front stop?
+        self.declare_parameter('min_forward_speed', 0.05)
         self.declare_parameter('front_stop_distance', 0.18)
-        self.declare_parameter('front_slow_distance', 0.28)
-        self.declare_parameter('avoidance_start_distance', 0.30)
+        self.declare_parameter('front_slow_distance', 0.20)
+        self.declare_parameter('avoidance_start_distance', 0.25)
         self.declare_parameter('wall_follow_start_distance', 0.24)
         self.declare_parameter('wall_distance', 0.16)
-        self.declare_parameter('right_too_close', 0.11)
+        self.declare_parameter('right_too_close', 0.15)
         self.declare_parameter('avoidance_kv', 0.5)
         self.declare_parameter('avoidance_kw', 0.7)
         self.declare_parameter('sensor_timeout', 1.0)
@@ -136,15 +136,15 @@ class Bug2Node(Node):
             angle += 2.0 * math.pi
         return angle
 
-    def clamp(self, value, min_value, max_value):
+    def clamp(self, value, min_value, max_value): #wtf?
         return max(min(value, max_value), min_value)
 
-    def change_state(self, new_state):
+    def change_state(self, new_state): #ok?
         if self.state != new_state:
             self.get_logger().info(f'Cambiando de estado: {self.state} -> {new_state}')
             self.state = new_state
 
-    def sector_min(self, center_angle, half_width, default=10.0):
+    def sector_min(self, center_angle, half_width, default=10.0): #wtf is this?????
         values = [
             distance for angle, distance in self.angle_ranges
             if abs(self.normalize_angle(angle - center_angle)) <= half_width
@@ -168,7 +168,7 @@ class Bug2Node(Node):
             return None, 0.0
         return min(front_values, key=lambda item: item[0])
 
-    def distance_to_m_line(self):
+    def distance_to_m_line(self):# distancia a linea proyectada?
         num = abs((self.target_y - self.start_y) * self.x -
                   (self.target_x - self.start_x) * self.y +
                   self.target_x * self.start_y -
@@ -192,15 +192,14 @@ class Bug2Node(Node):
         lateral_error = self.distance_to_m_line()
         return progress, goal_length, lateral_error
 
-    def should_stop_for_goal(self, dist_to_goal):
+    def should_stop_for_goal(self, dist_to_goal): # need several improvements!!!
         if dist_to_goal <= self.goal_tolerance:
             return True, f'dist={dist_to_goal:.2f} m'
 
         if self.state == 'WALL_FOLLOWING' and dist_to_goal <= self.wall_follow_goal_tolerance:
             return True, f'captura en WALL_FOLLOWING, dist={dist_to_goal:.2f} m'
 
-        if (
-                self.best_dist_to_goal <= self.wall_follow_goal_tolerance and
+        if (self.best_dist_to_goal <= self.wall_follow_goal_tolerance and
                 dist_to_goal > self.best_dist_to_goal + self.goal_pass_margin):
             return True, (
                 f'ya paso cerca de meta, dist={dist_to_goal:.2f} m, '
@@ -218,19 +217,19 @@ class Bug2Node(Node):
 
         return False, ''
 
-    def stop_at_goal(self, reason):
+    def stop_at_goal(self, reason):   #Could be part of the fuction above
         self.change_state('STOP')
         self.get_logger().info(f'Meta alcanzada. Deteniendo Bug2: {reason}.')
         self.cmd_pub.publish(Twist())
         self.goal_received = False
 
-    def is_path_to_goal_clear(self, err_theta):
+    def is_path_to_goal_clear(self, err_theta): # Dude?? this is an if in the actual BOG2 i think
         return (
             self.sector_min(err_theta, math.radians(15)) > self.front_slow_distance and
             self.regions['front'] > self.front_slow_distance
         )
 
-    def enter_wall_following(self, dist_to_goal):
+    def enter_wall_following(self, dist_to_goal): # this is a function to start tracking the surface of the wall, idk if we need it
         self.hit_distance = dist_to_goal
         self.hit_x = self.x
         self.hit_y = self.y
@@ -241,7 +240,7 @@ class Bug2Node(Node):
         )
         self.change_state('WALL_FOLLOWING')
 
-    def set_avoidance_command(self, msg, closest_range, theta_closest):
+    def set_avoidance_command(self, msg, closest_range, theta_closest): # huuh??? this is to avoid objects or???...
         theta_avoidance = theta_closest - math.pi if theta_closest > 0.0 else theta_closest + math.pi
         theta_avoidance = self.normalize_angle(theta_avoidance)
 
@@ -256,12 +255,10 @@ class Bug2Node(Node):
             )
 
         msg.angular.z = self.clamp(
-            self.avoidance_kw * theta_avoidance,
-            -self.w_max,
-            self.w_max,
+            self.avoidance_kw * theta_avoidance, -self.w_max,self.w_max,
         )
 
-    def control_loop(self):
+    def control_loop(self): #this is the main function so it should be main instead ??
         if not self.goal_received:
             return
 
@@ -316,19 +313,16 @@ class Bug2Node(Node):
                 dist_to_goal >= (self.hit_distance - self.m_line_goal_improvement)
             )
 
-            if (closest_clear and
-                    dist_m_line < self.m_line_tolerance and
-                    dist_to_goal < (self.hit_distance - self.m_line_goal_improvement) and
-                    self.left_hit_region and
-                    self.is_path_to_goal_clear(err_theta)):
+            if (closest_clear and dist_m_line < self.m_line_tolerance and
+                dist_to_goal < (self.hit_distance - self.m_line_goal_improvement) and
+                self.left_hit_region and self.is_path_to_goal_clear(err_theta)):
+
                 self.get_logger().info(f'Linea M interceptada a {dist_to_goal:.2f} m. Cambio a GO_TO_GOAL.')
                 self.change_state('GO_TO_GOAL')
-            elif returned_to_hit:
-                self.change_state('STOP')
-                self.get_logger().warn(
-                    'Regrese al punto de impacto sin encontrar una Linea M mejor. '
-                    'La meta puede estar bloqueada.'
-                )
+
+            elif returned_to_hit:self.change_state('STOP')
+                self.get_logger().warn('Regrese al punto de impacto sin encontrar una Linea M mejor.''La meta puede estar bloqueada.')
+            
                 self.cmd_pub.publish(Twist())
                 self.goal_received = False
                 return
@@ -336,11 +330,14 @@ class Bug2Node(Node):
         if self.state == 'GO_TO_GOAL':
             if closest_front_range is not None and closest_front_range < self.avoidance_start_distance:
                 self.set_avoidance_command(msg, closest_front_range, closest_front_angle)
+
             elif abs(err_theta) > self.heading_tolerance:
                 msg.angular.z = self.clamp(self.k_alpha * err_theta, -self.w_max, self.w_max)
                 heading_factor = max(0.0, math.cos(err_theta))
+
                 if heading_factor < 0.2:
                     msg.linear.x = 0.0
+
                 else:
                     forward_speed = self.k_rho * dist_to_goal * heading_factor
                     msg.linear.x = self.clamp(forward_speed, self.min_forward_speed, self.v_max)
@@ -361,14 +358,17 @@ class Bug2Node(Node):
             if self.regions['front'] < self.front_stop_distance:
                 msg.linear.x = 0.0
                 msg.angular.z = 0.6 * self.w_max
+
             elif closest_front_range is not None and closest_front_range < self.front_stop_distance:
                 self.set_avoidance_command(msg, closest_front_range, closest_front_angle)
+
             else:
                 if self.regions['right'] > self.wall_follow_start_distance * 2.0:
                     # No hay pared a la derecha: avanza buscándola con giro suave
                     msg.linear.x = self.wall_follow_speed
                     msg.angular.z = -0.5 * self.k_wall * (self.regions['right'] - self.wall_distance)
                     msg.angular.z = self.clamp(msg.angular.z, -0.3 * self.w_max, 0.3 * self.w_max)
+
                 else:
                     # Pared a la derecha visible: control proporcional normal
                     error = self.regions['right'] - self.wall_distance
@@ -377,19 +377,17 @@ class Bug2Node(Node):
                     msg.linear.x = self.clamp(
                         self.wall_follow_speed * turn_penalty,
                         self.min_forward_speed,
-                        self.v_max,
-                    )
-
+                        self.v_max,)
 
         self.cmd_pub.publish(msg)
         self.publish_diagnostics(msg, dist_to_goal, err_theta, odom_age, scan_age)
 
-    def sensors_ready(self, odom_age, scan_age):
+    def sensors_ready(self, odom_age, scan_age): #BROOOOOOOOOOOOOOO NO SHIT WHY THIS IS HERE?
         odom_missing = self.require_odom and (odom_age is None or odom_age > self.sensor_timeout)
         scan_missing = self.require_scan and (scan_age is None or scan_age > self.sensor_timeout)
         return not odom_missing and not scan_missing
 
-    def publish_diagnostics(self, cmd_msg, dist_to_goal, err_theta, odom_age=None, scan_age=None):
+    def publish_diagnostics(self, cmd_msg, dist_to_goal, err_theta, odom_age=None, scan_age=None): #What is this??
         now = self.get_clock().now()
         if (now - self.last_diagnostic_time).nanoseconds < 2.0e9:
             return
@@ -414,12 +412,12 @@ class Bug2Node(Node):
             f'closest={self.format_closest()}, regions={self.format_regions()}'
         )
 
-    def message_age(self, now, last_time):
+    def message_age(self, now, last_time): #again??
         if last_time is None:
             return None
         return (now - last_time).nanoseconds * 1.0e-9
 
-    def format_age(self, age):
+    def format_age(self, age): 
         if age is None:
             return 'nunca'
         return f'{age:.1f}s'
@@ -456,7 +454,7 @@ class Bug2Node(Node):
         self.change_state('GO_TO_GOAL')
         self.get_logger().info(f'Bug2 Meta: x={self.target_x}, y={self.target_y}. Linea M trazada.')
 
-    def scan_callback(self, msg):
+    def scan_callback(self, msg): #get data from scan??
         self.last_scan_time = self.get_clock().now()
         self.angle_ranges = []
 
@@ -486,13 +484,13 @@ class Bug2Node(Node):
         self.closest_range, self.closest_angle = self.get_closest_object_info()
         self.closest_front_range, self.closest_front_angle = self.get_closest_front_object_info()
 
-    def shutdown_function(self, signum, frame):
+    def shutdown_function(self, signum, frame): #this need to be improved
         self.cmd_pub.publish(Twist())
         rclpy.shutdown()
         sys.exit(0)
 
 
-def main(args=None):
+def main(args=None): #nope need to be restructured
     rclpy.init(args=args)
     node = Bug2Node()
     rclpy.spin(node)

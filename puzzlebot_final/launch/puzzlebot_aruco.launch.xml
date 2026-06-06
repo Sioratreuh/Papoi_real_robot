@@ -5,7 +5,7 @@
     <node pkg="rplidar_ros" exec="rplidar_node" name="rplidar_node" output="screen"
         respawn="true" respawn_delay="3.0">
         <param name="channel_type"     value="serial"/>
-        <param name="serial_port"      value="/dev/ttyUSB0"/>
+        <param name="serial_port"      value="/dev/ttyUSB1"/>
         <param name="serial_baudrate"  value="115200"/>
         <param name="frame_id"         value="laser_frame"/>
         <param name="inverted"         value="false"/>
