@@ -15,24 +15,10 @@
 
     <include file="$(find-pkg-share puzzlebot_ros)/launch/aruco_jetson.launch.py"/>
 
-    <let name="urdf_path"
-         value="$(find-pkg-share puzzlebot_description)/urdf/puzzlebot.urdf.xacro"/>
-
-    <node pkg="robot_state_publisher" exec="robot_state_publisher" output="screen">
-        <param name="robot_description"
-               value="$(command 'xacro $(var urdf_path)')"/>
-        <param name="use_sim_time" value="false"/>
-    </node>
-    
-    <node pkg="puzzlebot_final"
-            exec="joint_state_publisher"
-            name="joint_state_publisher"
-            output="screen"/>
-
     <node pkg="tf2_ros" exec="static_transform_publisher"
           name="laser_tf_fix"
           args="0 0 0 0 0 0 laser_frame laser"/>
-          
+
     <node pkg="tf2_ros" exec="static_transform_publisher"
           name="base_frame_alias"
           args="0 0 0 0 0 0 base_footprint base"/>

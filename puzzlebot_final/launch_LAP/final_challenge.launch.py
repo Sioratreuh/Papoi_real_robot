@@ -138,25 +138,25 @@ def generate_launch_description():
     )
 
     # ===== FALLBACK: descomentar SOLO si el bringup no levanta RSP/JSP =====
-    # desc_share = get_package_share_directory('puzzlebot_description')
-    # urdf_xacro = os.path.join(desc_share, 'urdf', 'puzzlebot.urdf.xacro')
-    # robot_description = ParameterValue(Command(['xacro ', urdf_xacro]), value_type=str)
-    #
-    # robot_state_publisher_node = Node(
-    #     package='robot_state_publisher',
-    #     executable='robot_state_publisher',
-    #     name='robot_state_publisher',
-    #     output='screen',
-    #     parameters=[{'robot_description': robot_description, 'use_sim_time': False}],
-    # )
-    #
-    # joint_state_publisher_node = Node(
-    #     package='puzzlebot_final',
-    #     executable='joint_state_publisher',
-    #     name='joint_state_publisher',
-    #     output='screen',
-    #     parameters=[{'use_sim_time': False}],
-    # )
+    desc_share = get_package_share_directory('puzzlebot_description')
+    urdf_xacro = os.path.join(desc_share, 'urdf', 'puzzlebot.urdf.xacro')
+    robot_description = ParameterValue(Command(['xacro ', urdf_xacro]), value_type=str)
+    
+    robot_state_publisher_node = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{'robot_description': robot_description, 'use_sim_time': False}],
+    )
+    
+    joint_state_publisher_node = Node(
+        package='puzzlebot_final',
+        executable='joint_state_publisher',
+        name='joint_state_publisher',
+        output='screen',
+        parameters=[{'use_sim_time': False}],
+    )
 
     return LaunchDescription([
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '0'),
@@ -209,6 +209,6 @@ def generate_launch_description():
         aruco_monitor,
         rviz_node,
         # --- Fallback si el bringup no publica el modelo (descomentar ambos) ---
-        # robot_state_publisher_node,
-        # joint_state_publisher_node,
+        robot_state_publisher_node,
+        joint_state_publisher_node,
     ])
