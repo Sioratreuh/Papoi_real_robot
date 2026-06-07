@@ -47,11 +47,11 @@ class PuzzlebotLocalization(Node):
             durability=DurabilityPolicy.VOLATILE,
             depth=10
         )
-        self.create_subscription(Float32, '/VelocityEncR', self.wr_callback, qos_sensor)
-        self.create_subscription(Float32, '/VelocityEncL', self.wl_callback, qos_sensor)
+        self.create_subscription(Float32, 'VelocityEncR', self.wr_callback, qos_sensor)
+        self.create_subscription(Float32, 'VelocityEncL', self.wl_callback, qos_sensor)
 
         # Publish odometry
-        self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
+        self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
 
         # Update at 100 Hz
         self.dt = 0.01

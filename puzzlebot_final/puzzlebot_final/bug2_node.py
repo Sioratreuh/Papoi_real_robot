@@ -320,9 +320,12 @@ class Bug2Node(Node):
                 self.get_logger().info(f'Linea M interceptada a {dist_to_goal:.2f} m. Cambio a GO_TO_GOAL.')
                 self.change_state('GO_TO_GOAL')
 
-            elif returned_to_hit:self.change_state('STOP')
-                self.get_logger().warn('Regrese al punto de impacto sin encontrar una Linea M mejor.''La meta puede estar bloqueada.')
-            
+            elif returned_to_hit:
+                self.change_state('STOP')
+                self.get_logger().warn(
+                    'Regrese al punto de impacto sin encontrar una Linea M mejor. '
+                    'La meta puede estar bloqueada.'
+                )
                 self.cmd_pub.publish(Twist())
                 self.goal_received = False
                 return
