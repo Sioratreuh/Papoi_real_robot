@@ -44,6 +44,7 @@ def generate_launch_description():
     scan_front_angle = LaunchConfiguration('scan_front_angle')
     v_max = LaunchConfiguration('v_max')        
     w_max = LaunchConfiguration('w_max')
+    sensor_timeout = LaunchConfiguration('sensor_timeout')
     bug_type = LaunchConfiguration('bug_type')
     wall_follow_side = LaunchConfiguration('wall_follow_side')
     odom_offset_x     = LaunchConfiguration('odom_offset_x')       # ← AGREGAR
