@@ -14,6 +14,8 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'),
             glob(os.path.join('launch_LAP', '*.py'))),
+        (os.path.join('share', package_name, 'launch'),
+            glob(os.path.join('launch', '*.xml'))),
         (os.path.join('share', package_name, 'rviz'),
             glob(os.path.join('rviz', '*.rviz'))),
     ],
