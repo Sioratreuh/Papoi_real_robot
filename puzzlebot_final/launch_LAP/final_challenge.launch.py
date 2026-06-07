@@ -264,7 +264,10 @@ def generate_launch_description():
                             description='Tipo de bug (bug2 o bug0).'),
         DeclareLaunchArgument('wall_follow_side', default_value='left', 
                             description='Lado para seguir la pared (left o right).'),
-
+        DeclareLaunchArgument('w_max', default_value='0.40',         
+                            description='Velocidad angular maxima (rad/s).'),
+        DeclareLaunchArgument('sensor_timeout', default_value='2.0',
+                            description='Segundos sin sensor antes de parar.'),
         # ==================== NODOS ====================
         localisation_node,
         ekf_node,
