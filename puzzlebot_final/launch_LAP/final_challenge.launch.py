@@ -16,6 +16,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration, Command
 from launch_ros.actions import Node
+from launch.conditions import IfCondition
 from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
@@ -42,7 +43,10 @@ def generate_launch_description():
     near_goal_v_max = LaunchConfiguration('near_goal_v_max')
     scan_front_angle = LaunchConfiguration('scan_front_angle')
     v_max = LaunchConfiguration('v_max')        
-    w_max = LaunchConfiguration('w_max')  
+    w_max = LaunchConfiguration('w_max')
+    odom_offset_x     = LaunchConfiguration('odom_offset_x')       # ← AGREGAR
+    odom_offset_y     = LaunchConfiguration('odom_offset_y')       # ← AGREGAR
+    odom_offset_theta = LaunchConfiguration('odom_offset_theta')  
     
     # ArUco
     use_aruco_monitor = LaunchConfiguration('use_aruco_monitor')
@@ -55,7 +59,12 @@ def generate_launch_description():
         executable='localisation_node',  # ✅ entry_point correcto
         name='localisation_node',
         output='screen',
-        parameters=[{'use_sim_time': False}],
+        parameters=[
+    {'use_sim_time': False},
+    {'odom_offset_x': ParameterValue(odom_offset_x, value_type=float)},
+    {'odom_offset_y': ParameterValue(odom_offset_y, value_type=float)},
+    {'odom_offset_theta': ParameterValue(odom_offset_theta, value_type=float)},
+],
         remappings=[
             ('VelocityEncR', wr_topic),
             ('VelocityEncL', wl_topic),
@@ -139,6 +148,7 @@ def generate_launch_description():
         output='screen',
         arguments=['-d', rviz_config_file],
         parameters=[{'use_sim_time': False}],
+        condition=IfCondition(LaunchConfiguration('use_rviz')),
     )
 
     # ===== FALLBACK: descomentar SOLO si el bringup no levanta RSP/JSP =====
@@ -164,7 +174,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '0'),
-        
         # ==================== ARGUMENTOS DEL LAUNCH ====================
         DeclareLaunchArgument('cmd_vel_topic', default_value='cmd_vel', 
                             description='Tópico de velocidad.'),
@@ -176,6 +185,8 @@ def generate_launch_description():
                             description='Tópico del RPLidar.'),
         DeclareLaunchArgument('goal_topic', default_value='goal', 
                             description='Tópico de meta Pose2D.'),
+        DeclareLaunchArgument('use_rviz', default_value='false',
+                            description='Lanzar RViz2'),
         
         # Bug2 parámetros
         DeclareLaunchArgument('require_scan', default_value='true', 
@@ -208,7 +219,13 @@ def generate_launch_description():
                             description='Velocidad angular maxima (rad/s).'),
         DeclareLaunchArgument('use_aruco_monitor', default_value='true', 
                             description='Arranca monitor ArUco.'),
-        
+        DeclareLaunchArgument('odom_offset_x', default_value='0.0', 
+                            description='Offset inicial X para odometría.'),
+        DeclareLaunchArgument('odom_offset_y', default_value='0.0', 
+                            description='Offset inicial Y para odometría.'),
+        DeclareLaunchArgument('odom_offset_theta', default_value='0.0', 
+                            description='Offset inicial Theta para odometría.'),
+
         # ==================== NODOS ====================
         localisation_node,
         ekf_node,

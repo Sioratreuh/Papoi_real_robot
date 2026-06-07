@@ -29,14 +29,17 @@ class PuzzlebotLocalization(Node):
         super().__init__('puzzlebot_localization')
 
         # Robot physical parameters
-        self.r = 0.05    # Wheel radius (m)
-        self.l = 0.19    # Wheel separation (m)
+        self.r = 0.045    # Wheel radius (m)
+        self.l = 0.17   # Wheel separation (m)
 
         # Current pose
-        self.x     = 0.0
-        self.y     = 0.0
-        self.theta = 0.0
-
+        # Agregar al __init__, antes del timer:
+        self.declare_parameter('odom_offset_x', 0.25)  # Offset inicial X para odometría (ajustar según posición física del robot)
+        self.declare_parameter('odom_offset_y', -0.295) # Offset inicial Y para odometría (ajustar según posición física del robot)
+        self.declare_parameter('odom_offset_theta', 0.0)
+        self.x = self.get_parameter('odom_offset_x').value
+        self.y = self.get_parameter('odom_offset_y').value
+        self.theta = self.get_parameter('odom_offset_theta').value
         # Wheel angular velocities (rad/s)
         self.wr = 0.0
         self.wl = 0.0
@@ -58,6 +61,8 @@ class PuzzlebotLocalization(Node):
         self.create_timer(self.dt, self.update_odometry)
 
         self.get_logger().info('Puzzlebot Localization node started')
+        self.declare_parameter('publish_without_fresh_encoders', True)
+        self.publish_without_fresh = self.get_parameter('publish_without_fresh_encoders').value
 
     def wr_callback(self, msg):
         # Right wheel velocity callback
@@ -68,6 +73,9 @@ class PuzzlebotLocalization(Node):
         self.wl = msg.data
 
     def update_odometry(self):
+        if not self.publish_without_fresh:
+            if self.wr == 0.0 and self.wl == 0.0:
+                return
         # Compute linear and angular velocity from wheel velocities
         v = self.r * (self.wr + self.wl) / 2.0
         w = self.r * (self.wr - self.wl) / self.l

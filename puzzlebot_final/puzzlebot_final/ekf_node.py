@@ -124,7 +124,7 @@ class EKFNode(Node):
         self.declare_parameter('camera_offset_z', CAMERA_TO_BASE_TRANSLATION[2])
         self.declare_parameter('max_marker_distance', 2.0)
         self.declare_parameter('max_aruco_innovation', 1.5)
-        self.declare_parameter('max_aruco_raw_disagreement', 0.35)
+        self.declare_parameter('max_aruco_raw_disagreement', 0.0)
         self.declare_parameter('aruco_measurement_std_x', 0.08)
         self.declare_parameter('aruco_measurement_std_y', 0.08)
         self.declare_parameter('process_noise_x', 0.003)
@@ -133,7 +133,7 @@ class EKFNode(Node):
         self.declare_parameter('initial_covariance_x', 0.05)
         self.declare_parameter('initial_covariance_y', 0.05)
         self.declare_parameter('initial_covariance_theta', 0.10)
-        self.declare_parameter('diagnostic_period', 2.0)
+        self.declare_parameter('diagnostic_period', 1.0)
         self.declare_parameter('max_prediction_dt', 0.25)
         self.declare_parameter('use_aruco_correction', True)
 

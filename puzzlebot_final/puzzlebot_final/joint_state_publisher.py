@@ -14,8 +14,8 @@ class PuzzlebotJointStatePublisher(Node):
         super().__init__('joint_state_publisher')
 
         # Parametros fisicos (solo afectan la velocidad visual de giro de la rueda)
-        self.r = 0.05    # Wheel radius (m)
-        self.l = 0.19    # Wheel separation (m)
+        self.r = 0.045   # Wheel radius (m)
+        self.l = 0.17   # Wheel separation (m)
 
         self.angle_r = 0.0
         self.angle_l = 0.0

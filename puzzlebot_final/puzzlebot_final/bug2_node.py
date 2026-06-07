@@ -87,7 +87,7 @@ class Bug2Node(Node):
         self.declare_parameter('right_too_close', 0.15)
         self.declare_parameter('avoidance_kv', 0.5)
         self.declare_parameter('avoidance_kw', 0.7)
-        self.declare_parameter('sensor_timeout', 1.0)
+        self.declare_parameter('sensor_timeout', 2.0)
         self.declare_parameter('require_scan', True)
         self.declare_parameter('require_odom', True)
         self.declare_parameter('scan_front_angle', 0.0)
