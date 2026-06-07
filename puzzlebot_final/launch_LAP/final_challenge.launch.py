@@ -41,6 +41,8 @@ def generate_launch_description():
     near_goal_slow_distance = LaunchConfiguration('near_goal_slow_distance')
     near_goal_v_max = LaunchConfiguration('near_goal_v_max')
     scan_front_angle = LaunchConfiguration('scan_front_angle')
+    v_max = LaunchConfiguration('v_max')        
+    w_max = LaunchConfiguration('w_max')  
     
     # ArUco
     use_aruco_monitor = LaunchConfiguration('use_aruco_monitor')
@@ -103,6 +105,8 @@ def generate_launch_description():
             {'near_goal_slow_distance': ParameterValue(near_goal_slow_distance, value_type=float)},
             {'near_goal_v_max': ParameterValue(near_goal_v_max, value_type=float)},
             {'scan_front_angle': ParameterValue(scan_front_angle, value_type=float)},
+            {'v_max': ParameterValue(v_max, value_type=float)},
+            {'w_max': ParameterValue(w_max, value_type=float)},
         ],
         remappings=[
             ('cmd_vel', cmd_vel_topic),
@@ -178,7 +182,7 @@ def generate_launch_description():
                             description='Se detiene si no hay RPLidar.'),
         DeclareLaunchArgument('require_odom', default_value='true', 
                             description='Se detiene si no hay odom.'),
-        DeclareLaunchArgument('front_stop_distance', default_value='0.22', 
+        DeclareLaunchArgument('front_stop_distance', default_value='0.25', 
                             description='Detener avance y seguir pared.'),
         DeclareLaunchArgument('avoidance_start_distance', default_value='0.38', 
                             description='Empezar a esquivar suavemente.'),
@@ -186,7 +190,7 @@ def generate_launch_description():
                             description='Cambiar a WALL_FOLLOWING.'),
         DeclareLaunchArgument('goal_tolerance', default_value='0.05', 
                             description='Radio para alcanzar meta.'),
-        DeclareLaunchArgument('wall_follow_goal_tolerance', default_value='0.18', 
+        DeclareLaunchArgument('wall_follow_goal_tolerance', default_value='0.08', 
                             description='Radio de captura de meta siguiendo pared.'),
         DeclareLaunchArgument('goal_pass_margin', default_value='0.02', 
                             description='Margen para detenerse al pasar meta.'),
@@ -198,6 +202,10 @@ def generate_launch_description():
                             description='Velocidad máxima cerca de meta.'),
         DeclareLaunchArgument('scan_front_angle', default_value='0.0', 
                             description='Frente del LaserScan.'),
+        DeclareLaunchArgument('v_max', default_value='0.08',         
+                            description='Velocidad lineal maxima (m/s).'),
+        DeclareLaunchArgument('w_max', default_value='0.40',         
+                            description='Velocidad angular maxima (rad/s).'),
         DeclareLaunchArgument('use_aruco_monitor', default_value='true', 
                             description='Arranca monitor ArUco.'),
         
