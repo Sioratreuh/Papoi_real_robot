@@ -78,17 +78,17 @@ class Bug2Node(Node):
         self.declare_parameter('k_alpha',                  1.5)   # proportional gain: heading error → angular speed
         self.declare_parameter('v_max',                    0.08)
         self.declare_parameter('w_max',                    0.40)
-        self.declare_parameter('heading_tolerance',        0.15)  # rad; below this, stop rotating and drive forward
+        self.declare_parameter('heading_tolerance',        0.25)  # rad; below this, stop rotating and drive forward
         self.declare_parameter('min_forward_speed',        0.02)
         self.declare_parameter('front_stop_distance',      0.18)  # m; hard stop threshold
         self.declare_parameter('front_slow_distance',      0.28)  # m; start slowing down
-        self.declare_parameter('avoidance_start_distance', 0.25)  # m; trigger avoidance command
+        self.declare_parameter('avoidance_start_distance', 0.35)  # m; trigger avoidance command
         self.declare_parameter('wall_follow_start_distance', 0.24)
         self.declare_parameter('wall_distance',            0.16)  # desired lateral clearance from wall
         self.declare_parameter('right_too_close',          0.15)
         self.declare_parameter('avoidance_kv',             0.5)
         self.declare_parameter('avoidance_kw',             0.7)
-        self.declare_parameter('sensor_timeout',           2.0)
+        self.declare_parameter('sensor_timeout',           1.0)
         self.declare_parameter('require_scan',             True)
         self.declare_parameter('require_odom',             True)
         self.declare_parameter('scan_front_angle',         0.0)   # deg; rotate scan so index-0 aligns with robot front

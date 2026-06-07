@@ -67,15 +67,15 @@ class Bug0Node(Node):
         self.declare_parameter('k_alpha',                  1.5)   # proportional gain: heading error → angular speed
         self.declare_parameter('v_max',                    0.08)
         self.declare_parameter('w_max',                    0.40)
-        self.declare_parameter('heading_tolerance',        0.15)  # rad; below this, stop rotating and drive forward
+        self.declare_parameter('heading_tolerance',        0.25)  # rad; below this, stop rotating and drive forward
         self.declare_parameter('min_forward_speed',        0.02)
         self.declare_parameter('require_scan',             True)
         self.declare_parameter('require_odom',             True)
         self.declare_parameter('sensor_timeout',           1.0)
         self.declare_parameter('scan_front_angle',         0.0)   # deg; rotate scan so 0 rad = robot forward
-        self.declare_parameter('front_stop_distance',      0.22)  # m; hard stop threshold
-        self.declare_parameter('front_slow_distance',      0.30)  # m; start slowing down
-        self.declare_parameter('avoidance_start_distance', 0.38)  # m; trigger wall following / avoidance
+        self.declare_parameter('front_stop_distance',      0.18)  # m; hard stop threshold
+        self.declare_parameter('front_slow_distance',      0.28)  # m; start slowing down
+        self.declare_parameter('avoidance_start_distance', 0.35)  # m; trigger wall following / avoidance
         self.declare_parameter('avoidance_kv',             0.5)
         self.declare_parameter('avoidance_kw',             0.7)
         self.declare_parameter('wall_threshold',           0.24)  # m; distance that counts as "wall detected" in rule-based follower
