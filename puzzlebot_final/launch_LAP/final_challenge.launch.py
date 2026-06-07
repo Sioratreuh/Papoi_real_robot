@@ -18,6 +18,8 @@ from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.parameter_descriptions import ParameterValue
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, ExecuteProcess, RegisterEventHandler
+from launch.event_handlers import OnShutdown
 
 def generate_launch_description():
     package_name = 'puzzlebot_final'  # ✅ Correcto: paquete real
@@ -207,6 +209,12 @@ def generate_launch_description():
         parameters=[{'use_sim_time': False}],
     )
 
+    stop_robot = ExecuteProcess(
+        cmd=['ros2', 'topic', 'pub', '--once', '/cmd_vel',
+             'geometry_msgs/msg/Twist', '{}'],
+        output='screen',
+    )
+
     return LaunchDescription([
         SetEnvironmentVariable('ROS_LOCALHOST_ONLY', '0'),
         # ==================== ARGUMENTOS DEL LAUNCH ====================
@@ -230,9 +238,9 @@ def generate_launch_description():
                             description='Se detiene si no hay odom.'),
         DeclareLaunchArgument('front_stop_distance', default_value='0.25', 
                             description='Detener avance y seguir pared.'),
-        DeclareLaunchArgument('avoidance_start_distance', default_value='0.38', 
+        DeclareLaunchArgument('avoidance_start_distance', default_value='0.30', 
                             description='Empezar a esquivar suavemente.'),
-        DeclareLaunchArgument('wall_follow_start_distance', default_value='0.28', 
+        DeclareLaunchArgument('wall_follow_start_distance', default_value='0.25', 
                             description='Cambiar a WALL_FOLLOWING.'),
         DeclareLaunchArgument('goal_tolerance', default_value='0.05', 
                             description='Radio para alcanzar meta.'),
@@ -254,9 +262,9 @@ def generate_launch_description():
                             description='Velocidad angular maxima (rad/s).'),
         DeclareLaunchArgument('use_aruco_monitor', default_value='true', 
                             description='Arranca monitor ArUco.'),
-        DeclareLaunchArgument('odom_offset_x', default_value='0.0', 
+        DeclareLaunchArgument('odom_offset_x', default_value='0.3', 
                             description='Offset inicial X para odometría.'),
-        DeclareLaunchArgument('odom_offset_y', default_value='0.0', 
+        DeclareLaunchArgument('odom_offset_y', default_value='-0.3', 
                             description='Offset inicial Y para odometría.'),
         DeclareLaunchArgument('odom_offset_theta', default_value='0.0', 
                             description='Offset inicial Theta para odometría.'),
@@ -266,7 +274,7 @@ def generate_launch_description():
                             description='Lado para seguir la pared (left o right).'),
         DeclareLaunchArgument('w_max', default_value='0.40',         
                             description='Velocidad angular maxima (rad/s).'),
-        DeclareLaunchArgument('sensor_timeout', default_value='2.0',
+        DeclareLaunchArgument('sensor_timeout', default_value='1.0',
                             description='Segundos sin sensor antes de parar.'),
         # ==================== NODOS ====================
         localisation_node,
@@ -279,4 +287,11 @@ def generate_launch_description():
         # --- Fallback si el bringup no publica el modelo (descomentar ambos) ---
         robot_state_publisher_node,
         joint_state_publisher_node,
+
+        RegisterEventHandler(
+            OnShutdown(
+                on_shutdown=[stop_robot]
+            )
+        ),
+
     ])

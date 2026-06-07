@@ -71,10 +71,10 @@ class Bug0Node(Node):
         self.declare_parameter('min_forward_speed',        0.02)
         self.declare_parameter('require_scan',             True)
         self.declare_parameter('require_odom',             True)
-        self.declare_parameter('sensor_timeout',           2.0)
+        self.declare_parameter('sensor_timeout',           1.0)
         self.declare_parameter('scan_front_angle',         0.0)   # deg; rotate scan so 0 rad = robot forward
         self.declare_parameter('front_stop_distance',      0.22)  # m; hard stop threshold
-        self.declare_parameter('front_slow_distance',      0.38)  # m; start slowing down
+        self.declare_parameter('front_slow_distance',      0.30)  # m; start slowing down
         self.declare_parameter('avoidance_start_distance', 0.38)  # m; trigger wall following / avoidance
         self.declare_parameter('avoidance_kv',             0.5)
         self.declare_parameter('avoidance_kw',             0.7)
