@@ -18,7 +18,11 @@ class WaypointManager(Node):
         # RUTA DEL LABERINTO (Un solo destino final)
         # Formato: (X, Y)
         self.waypoints = [
-            (2.70, -0.60),  # Meta única: Salida superior izquierda (Cerca de ArUco H)
+            (2.85, -0.30), #P1
+            # (0.3, -1.6), #P2
+            # (1.5, -2.75), #P3
+            # (2.85, -2.75), #P4
+            # (1.2, -1.5), #P5
         ]
         
         self.current_index = 0

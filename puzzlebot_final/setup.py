@@ -30,6 +30,7 @@ setup(
             'localisation_node = puzzlebot_final.localisation_node:main',
             'ekf_node          = puzzlebot_final.ekf_node:main',
             'bug2_node         = puzzlebot_final.bug2_node:main',
+            'bug0_node         = puzzlebot_final.bug0_node:main',
             'waypoint_manager  = puzzlebot_final.waypoint_manager:main',
             'aruco_monitor     = puzzlebot_final.aruco_monitor:main',
             'joint_state_publisher = puzzlebot_final.joint_state_publisher:main',

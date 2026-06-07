@@ -14,9 +14,9 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
-from launch.substitutions import LaunchConfiguration, Command
+from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
@@ -44,6 +44,8 @@ def generate_launch_description():
     scan_front_angle = LaunchConfiguration('scan_front_angle')
     v_max = LaunchConfiguration('v_max')        
     w_max = LaunchConfiguration('w_max')
+    bug_type = LaunchConfiguration('bug_type')
+    wall_follow_side = LaunchConfiguration('wall_follow_side')
     odom_offset_x     = LaunchConfiguration('odom_offset_x')       # ← AGREGAR
     odom_offset_y     = LaunchConfiguration('odom_offset_y')       # ← AGREGAR
     odom_offset_theta = LaunchConfiguration('odom_offset_theta')  
@@ -94,12 +96,43 @@ def generate_launch_description():
         ],
     )
     
-    # NODO 4: Control principal Bug2
+    # NODO 4: Control principal Bug
+
+    bug0_node = Node(
+        package=package_name,
+        executable='bug0_node',
+        name='bug0_node',
+        output='screen',
+        condition=IfCondition(PythonExpression(["'", bug_type, "' == 'bug0'"])),
+        parameters=[
+            {'use_sim_time': False},
+            {'front_stop_distance':      ParameterValue(front_stop_distance,      value_type=float)},
+            {'avoidance_start_distance': ParameterValue(avoidance_start_distance, value_type=float)},
+            {'goal_tolerance':           ParameterValue(goal_tolerance,           value_type=float)},
+            {'near_goal_slow_distance':  ParameterValue(near_goal_slow_distance,  value_type=float)},
+            {'near_goal_v_max':          ParameterValue(near_goal_v_max,          value_type=float)},
+            {'scan_front_angle':         ParameterValue(scan_front_angle,         value_type=float)},
+            {'v_max':                    ParameterValue(v_max,                    value_type=float)},
+            {'w_max':                    ParameterValue(w_max,                    value_type=float)},
+            {'wall_follow_side':         ParameterValue(wall_follow_side,         value_type=str)},
+            {'sensor_timeout':           ParameterValue(sensor_timeout,           value_type=float)},
+            {'require_scan':             ParameterValue(require_scan,             value_type=bool)},
+            {'require_odom':             ParameterValue(require_odom,             value_type=bool)},
+        ],
+        remappings=[
+            ('odom',  'odom_ekf'),
+            ('scan',  scan_topic),
+            ('goal',  goal_topic),
+            ('cmd_vel', cmd_vel_topic),
+        ],
+    )
+
     bug2_node = Node(
         package=package_name,
         executable='bug2_node',  # ✅ entry_point correcto
         name='bug2_node',
         output='screen',
+        condition=IfCondition(PythonExpression(["'", bug_type, "' == 'bug2'"])),
         parameters=[
             {'use_sim_time': False},
             {'require_scan': ParameterValue(require_scan, value_type=bool)},
@@ -116,6 +149,7 @@ def generate_launch_description():
             {'scan_front_angle': ParameterValue(scan_front_angle, value_type=float)},
             {'v_max': ParameterValue(v_max, value_type=float)},
             {'w_max': ParameterValue(w_max, value_type=float)},
+            {'wall_follow_side': ParameterValue(wall_follow_side, value_type=str)},
         ],
         remappings=[
             ('cmd_vel', cmd_vel_topic),
@@ -225,12 +259,17 @@ def generate_launch_description():
                             description='Offset inicial Y para odometría.'),
         DeclareLaunchArgument('odom_offset_theta', default_value='0.0', 
                             description='Offset inicial Theta para odometría.'),
+        DeclareLaunchArgument('bug_type', default_value='bug2', 
+                            description='Tipo de bug (bug2 o bug0).'),
+        DeclareLaunchArgument('wall_follow_side', default_value='left', 
+                            description='Lado para seguir la pared (left o right).'),
 
         # ==================== NODOS ====================
         localisation_node,
         ekf_node,
         waypoint_node,
         bug2_node,
+        bug0_node,
         aruco_monitor,
         rviz_node,
         # --- Fallback si el bringup no publica el modelo (descomentar ambos) ---
