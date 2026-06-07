@@ -32,5 +32,9 @@
     <node pkg="tf2_ros" exec="static_transform_publisher"
           name="laser_tf_fix"
           args="0 0 0 0 0 0 laser_frame laser"/>
+          
+    <node pkg="tf2_ros" exec="static_transform_publisher"
+          name="base_frame_alias"
+          args="0 0 0 0 0 0 base_footprint base"/>
 
 </launch>
