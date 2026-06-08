@@ -18,11 +18,11 @@ class WaypointManager(Node):
         # RUTA DEL LABERINTO (Un solo destino final)
         # Formato: (X, Y)
         self.waypoints = [
-            # (36, -27.5), #P1
-            # (.36, -.94), #P2
+            # (0.36, -0.275), #P1 -Spawn
+            # (0.36, -0.94), #P2
             # (1.70, -2.04), #P3
-            # (.36, -2.72), #P4
-            # (2.18, -.30), #P5
+            # (0.36, -2.72), #P4
+            # (2.18, -0.30), #P5
             (2.72, -2.72), #P6
         ]
         
