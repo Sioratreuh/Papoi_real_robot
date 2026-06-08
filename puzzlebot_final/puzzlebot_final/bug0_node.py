@@ -228,9 +228,10 @@ class Bug0Node(Node):
 
         # ── Velocity commands ──────────────────────────────────────────────
         if self.state == 'GO_TO_GOAL':
-            if closest_front_range is not None and closest_front_range < self.avoidance_start_distance:
-                # Obstacle in avoidance zone: steer away
-                self.set_avoidance_command(msg, closest_front_range, closest_front_angle)
+            if self.regions['front'] < 0.12 and closest_front_range is not None and closest_front_range < 0.12:
+                # True emergency: wall centimeters away, back up slightly
+                msg.linear.x  = -0.02
+                msg.angular.z = -turn_sign * self.w_max
 
             elif abs(err_theta) > self.heading_tolerance:
                 # Heading error too large: rotate toward goal, limited forward motion
@@ -268,8 +269,8 @@ class Bug0Node(Node):
                 self.set_avoidance_command(msg, closest_front_range, closest_front_angle)
 
             elif self.regions['front'] < self.front_stop_distance:
-                # Wall directly ahead: stop and rotate away from followed side
-                msg.linear.x  = 0.0
+                # Concave corner: back up slightly while rotating to create clearance
+                msg.linear.x  = -0.02
                 msg.angular.z = -turn_sign * self.w_max
 
             elif wall_front < self.wall_threshold:

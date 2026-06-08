@@ -82,7 +82,7 @@ class Bug2Node(Node):
         self.declare_parameter('min_forward_speed',        0.02)
         self.declare_parameter('front_stop_distance',      0.18)  # m; hard stop threshold
         self.declare_parameter('front_slow_distance',      0.28)  # m; start slowing down
-        self.declare_parameter('avoidance_start_distance', 0.35)  # m; trigger avoidance command
+        self.declare_parameter('avoidance_start_distance', 0.25)  # m; trigger avoidance command
         self.declare_parameter('wall_follow_start_distance', 0.24)
         self.declare_parameter('wall_distance',            0.16)  # desired lateral clearance from wall
         self.declare_parameter('right_too_close',          0.15)
@@ -92,7 +92,7 @@ class Bug2Node(Node):
         self.declare_parameter('require_scan',             True)
         self.declare_parameter('require_odom',             True)
         self.declare_parameter('scan_front_angle',         0.0)   # deg; rotate scan so index-0 aligns with robot front
-        self.declare_parameter('k_wall',                   2.5)   # proportional gain: wall distance error → angular speed
+        self.declare_parameter('k_wall',                   1.2)   # proportional gain: wall distance error → angular speed
         self.declare_parameter('wall_follow_speed',        0.10)
         self.declare_parameter('wall_follow_side',         'left')  # 'right' or 'left'
 
@@ -370,8 +370,7 @@ class Bug2Node(Node):
             wall_front, wall_side, turn_sign = self.wall_follow_geometry()
 
             if self.regions['front'] < self.front_stop_distance:
-                # Wall directly ahead: stop and rotate away from followed wall
-                msg.linear.x  = 0.0
+                msg.linear.x  = -0.02
                 msg.angular.z = -turn_sign * 0.6 * self.w_max
 
             elif closest_front_range is not None and closest_front_range < self.front_stop_distance:
@@ -381,18 +380,18 @@ class Bug2Node(Node):
             else:
                 if wall_side > self.wall_follow_start_distance * 2.0:
                     # Wall lost (corner or gap): advance and steer toward wall side to reacquire
-                    msg.linear.x  = self.wall_follow_speed
+                    msg.linear.x  = self.wall_follow_speed * 0.8
                     msg.angular.z = self.clamp(
-                        turn_sign * 0.5 * self.k_wall * (wall_side - self.wall_distance),
-                        -0.3 * self.w_max, 0.3 * self.w_max)
+                        turn_sign * 0.4 * self.k_wall * (wall_side - self.wall_distance),
+                        -0.5 * self.w_max, 0.5 * self.w_max)
                 else:
                     # Wall visible: proportional distance control
                     error         = wall_side - self.wall_distance
-                    msg.angular.z = self.clamp(
-                        turn_sign * self.k_wall * error, -self.w_max, self.w_max)
-                    turn_penalty  = max(0.0, 1.0 - abs(msg.angular.z) / self.w_max)
+                    msg.angular.z = self.clamp(turn_sign * self.k_wall * error, -self.w_max, self.w_max)
+                    # Speed reduced proportionally but never below 40% of wall_follow_speed
+                    turn_factor   = max(0.4, 1.0 - 0.6 * abs(msg.angular.z) / self.w_max)
                     msg.linear.x  = self.clamp(
-                        self.wall_follow_speed * turn_penalty,
+                        self.wall_follow_speed * turn_factor,
                         self.min_forward_speed, self.v_max)
 
         self.cmd_pub.publish(msg)
