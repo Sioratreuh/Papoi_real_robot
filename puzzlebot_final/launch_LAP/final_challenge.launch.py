@@ -13,12 +13,11 @@ NOTA: robot_state_publisher va en puzzlebot_aruco.launch.xml (bringup), no aquí
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, ExecuteProcess, RegisterEventHandler, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, Command, PythonExpression
 from launch_ros.actions import Node
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, ExecuteProcess, RegisterEventHandler
 from launch.event_handlers import OnShutdown
 
 def generate_launch_description():
@@ -49,32 +48,39 @@ def generate_launch_description():
     sensor_timeout = LaunchConfiguration('sensor_timeout')
     bug_type = LaunchConfiguration('bug_type')
     wall_follow_side = LaunchConfiguration('wall_follow_side')
-    odom_offset_x     = LaunchConfiguration('odom_offset_x')       # ← AGREGAR
-    odom_offset_y     = LaunchConfiguration('odom_offset_y')       # ← AGREGAR
-    odom_offset_theta = LaunchConfiguration('odom_offset_theta')  
+    route             = LaunchConfiguration('route')
+    goal_wait_time    = LaunchConfiguration('goal_wait_time')
+    odom_offset_theta = LaunchConfiguration('odom_offset_theta')
     
     # ArUco
     use_aruco_monitor = LaunchConfiguration('use_aruco_monitor')
     
     # ==================== NODOS CAPA B - NAVEGACIÓN ====================
-    
-    # NODO 1: Localización cruda (dead-reckoning puro)
-    localisation_node = Node(
-        package=package_name,
-        executable='localisation_node',  # ✅ entry_point correcto
-        name='localisation_node',
-        output='screen',
-        parameters=[
-    {'use_sim_time': False},
-    {'odom_offset_x': ParameterValue(odom_offset_x, value_type=float)},
-    {'odom_offset_y': ParameterValue(odom_offset_y, value_type=float)},
-    {'odom_offset_theta': ParameterValue(odom_offset_theta, value_type=float)},
-],
-        remappings=[
-            ('VelocityEncR', wr_topic),
-            ('VelocityEncL', wl_topic),
-        ],
-    )
+    # NODO 1: Localización cruda — spawn extraído de route[0]
+    def create_localisation_node(context):
+        route_str = context.launch_configurations['route']
+        spawn_xy  = route_str.strip().split(';')[0].split(',')
+        spawn_x   = float(spawn_xy[0].strip())
+        spawn_y   = float(spawn_xy[1].strip())
+        theta     = float(context.launch_configurations.get('odom_offset_theta', '0.0'))
+        wr        = context.launch_configurations.get('wr_topic', 'VelocityEncR')
+        wl        = context.launch_configurations.get('wl_topic', 'VelocityEncL')
+        return [Node(
+            package=package_name,
+            executable='localisation_node',
+            name='localisation_node',
+            output='screen',
+            parameters=[
+                {'use_sim_time': False},
+                {'odom_offset_x': spawn_x},
+                {'odom_offset_y': spawn_y},
+                {'odom_offset_theta': theta},
+            ],
+            remappings=[
+                ('VelocityEncR', wr),
+                ('VelocityEncL', wl),
+            ],
+        )]
     
     # NODO 2: EKF (corrección con ArUco)
     ekf_node = Node(
@@ -89,12 +95,17 @@ def generate_launch_description():
     # NODO 3: Generador de metas
     waypoint_node = Node(
         package=package_name,
-        executable='waypoint_manager',  # ✅ entry_point correcto
+        executable='waypoint_manager',
         name='waypoint_manager',
         output='screen',
-        parameters=[{'use_sim_time': False}],
+        parameters=[
+            {'use_sim_time': False},
+            {'route':          ParameterValue(route,          value_type=str)},
+            {'goal_wait_time': ParameterValue(goal_wait_time, value_type=float)},
+            {'goal_tolerance': ParameterValue(goal_tolerance, value_type=float)},
+        ],
         remappings=[
-            ('odom', 'odom_ekf'),  # ← lee odom fusionado
+            ('odom', 'odom_ekf'),
             ('goal', goal_topic),
         ],
     )
@@ -262,22 +273,26 @@ def generate_launch_description():
                             description='Velocidad angular maxima (rad/s).'),
         DeclareLaunchArgument('use_aruco_monitor', default_value='true', 
                             description='Arranca monitor ArUco.'),
-        DeclareLaunchArgument('odom_offset_x', default_value='0.36', 
-                            description='Offset inicial X para odometría.'),
-        DeclareLaunchArgument('odom_offset_y', default_value='-0.275', 
-                            description='Offset inicial Y para odometría.'),
+        DeclareLaunchArgument(
+            'route',
+            default_value='0.36,-0.275;2.72,-2.72',
+            description='Spawn;meta1;meta2... pares x,y separados por ";". Primero=spawn.'
+        ),
+        DeclareLaunchArgument(
+            'goal_wait_time',
+            default_value='30.0',
+            description='Segundos de espera entre metas.'
+        ),
         DeclareLaunchArgument('odom_offset_theta', default_value='0.0', 
                             description='Offset inicial Theta para odometría.'),
         DeclareLaunchArgument('bug_type', default_value='bug2', 
                             description='Tipo de bug (bug2 o bug0).'),
         DeclareLaunchArgument('wall_follow_side', default_value='left', 
                             description='Lado para seguir la pared (left o right).'),
-        DeclareLaunchArgument('w_max', default_value='0.40',         
-                            description='Velocidad angular maxima (rad/s).'),
         DeclareLaunchArgument('sensor_timeout', default_value='1.0',
                             description='Segundos sin sensor antes de parar.'),
         # ==================== NODOS ====================
-        localisation_node,
+        OpaqueFunction(function=create_localisation_node),
         ekf_node,
         waypoint_node,
         bug2_node,
