@@ -276,6 +276,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'route',
             default_value='0.36,-0.275;2.72,-2.72',
+            # (0.36, -0.275), #P1 -Spawn
+            # (0.36, -0.94), #P2
+            # (1.70, -2.04), #P3
+            # (0.36, -2.72), #P4
+            # (2.18, -0.30), #P5
+            #(2.72, -2.72), #P6
             description='Spawn;meta1;meta2... pares x,y separados por ";". Primero=spawn.'
         ),
         DeclareLaunchArgument(
