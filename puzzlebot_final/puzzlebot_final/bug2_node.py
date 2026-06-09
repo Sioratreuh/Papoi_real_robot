@@ -102,13 +102,13 @@ class Bug2Node(Node):
         self.declare_parameter('avoidance_start_distance',     0.30)   # trigger avoidance in GO_TO_GOAL
 
         # Wall following geometry
-        self.declare_parameter('wall_follow_start_distance',   0.24)   # obstacle distance that triggers WALL_FOLLOWING
-        self.declare_parameter('wall_distance',                0.175)   # desired lateral clearance
-        self.declare_parameter('wall_follow_side',             'right')
+        self.declare_parameter('wall_follow_start_distance',   0.2)   # obstacle distance that triggers WALL_FOLLOWING
+        self.declare_parameter('wall_distance',                0.165)   # desired lateral clearance
+        self.declare_parameter('wall_follow_side',             'left')
         self.declare_parameter('start_with_wall_acquisition',  True)   # if True, acquire wall on goal reception before navigating
 
         # Wall following control
-        self.declare_parameter('wall_acquire_distance',        0.18)   # must be within this distance to count as acquired
+        self.declare_parameter('wall_acquire_distance',        0.16)   # must be within this distance to count as acquired
         self.declare_parameter('wall_too_close',               0.11)   # emergency slow when closer than this
         self.declare_parameter('wall_lost_distance',           0.27)   # side distance above which wall is considered lost
         self.declare_parameter('wall_follow_speed',            0.10)
