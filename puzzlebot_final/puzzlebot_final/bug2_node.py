@@ -16,6 +16,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Pose2D, Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
 
 
 def euler_from_quaternion(x, y, z, w):
@@ -33,6 +35,7 @@ class Bug2Node(Node):
         latched.durability = qos.QoSDurabilityPolicy.TRANSIENT_LOCAL
 
         self.cmd_pub  = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.mline_pub = self.create_publisher(Marker, 'mline_marker', 10)
         self.odom_sub = self.create_subscription(Odometry, 'odom', self.odom_callback, 10)
         self.goal_sub = self.create_subscription(Pose2D, 'goal', self.goal_callback, latched)
         self.scan_sub = self.create_subscription(
@@ -99,8 +102,8 @@ class Bug2Node(Node):
         self.declare_parameter('avoidance_start_distance',     0.30)   # trigger avoidance in GO_TO_GOAL
 
         # Wall following geometry
-        self.declare_parameter('wall_follow_start_distance',   0.24)   # obstacle distance that triggers WALL_FOLLOWING
-        self.declare_parameter('wall_distance',                0.16)   # desired lateral clearance
+        self.declare_parameter('wall_follow_start_distance',   0.25)   # obstacle distance that triggers WALL_FOLLOWING
+        self.declare_parameter('wall_distance',                0.19)   # desired lateral clearance
         self.declare_parameter('wall_follow_side',             'right')
         self.declare_parameter('start_with_wall_acquisition',  True)   # if True, acquire wall on goal reception before navigating
 
@@ -216,6 +219,32 @@ class Bug2Node(Node):
             f'v_max={self.v_max} w_max={self.w_max}')
 
     # ─── Utilities ────────────────────────────────────────────────────────────
+    def publish_mline_marker(self):
+        """Publish M-line as a LINE_STRIP marker for RViz visualization."""
+        if not self.goal_received:
+            return
+        marker = Marker()
+        marker.header.frame_id = 'odom'
+        marker.header.stamp    = self.get_clock().now().to_msg()
+        marker.ns     = 'mline'
+        marker.id     = 0
+        marker.type   = Marker.LINE_STRIP
+        marker.action = Marker.ADD
+        marker.scale.x = 0.02          # line width in meters
+        marker.color.r = 1.0
+        marker.color.g = 0.5
+        marker.color.b = 0.0
+        marker.color.a = 0.8
+        marker.lifetime.sec = 0        # 0 = persist forever
+
+        p1 = Point()
+        p1.x, p1.y, p1.z = self.start_x, self.start_y, 0.0
+
+        p2 = Point()
+        p2.x, p2.y, p2.z = self.target_x, self.target_y, 0.0
+
+        marker.points = [p1, p2]
+        self.mline_pub.publish(marker)
 
     def normalize_angle(self, angle):
         while angle >  math.pi: angle -= 2.0 * math.pi
@@ -811,6 +840,7 @@ class Bug2Node(Node):
         self.get_logger().info(
             f'[GOAL] target=({self.target_x},{self.target_y}) '
             f'from=({self.start_x:.2f},{self.start_y:.2f}) M-line set')
+        self.publish_mline_marker()
         dist = math.hypot(self.target_x - self.x, self.target_y - self.y)
         if self.start_with_wall_acquisition:
             # Go find the wall first; start navigating after acquisition
