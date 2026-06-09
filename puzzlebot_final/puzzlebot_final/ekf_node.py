@@ -440,7 +440,7 @@ class EKFNode(Node):
         ])
         s_matrix = h_jacobian @ self.sigma @ h_jacobian.T + self.r_aruco
         kalman_gain = self.sigma @ h_jacobian.T @ np.linalg.inv(s_matrix)
-        kalman_gain[2, :] = 0.0
+        
 
         correction = kalman_gain @ innovation
         self.state += correction

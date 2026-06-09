@@ -65,9 +65,9 @@ class Bug2Node(Node):
 
         # --- Parameters ---
         self.declare_parameter('goal_tolerance',           0.05)
-        self.declare_parameter('wall_follow_goal_tolerance', 0.18)
+        self.declare_parameter('wall_follow_goal_tolerance', 0.24)
         self.declare_parameter('goal_pass_margin',         0.02)
-        self.declare_parameter('goal_pass_lateral_tolerance', 0.22)
+        self.declare_parameter('goal_pass_lateral_tolerance', 0.10)
         self.declare_parameter('near_goal_slow_distance',  0.10)
         self.declare_parameter('near_goal_v_max',          0.10)
         self.declare_parameter('m_line_tolerance',         0.10)  # max perpendicular dist to M-line to re-enter GO_TO_GOAL
@@ -84,8 +84,8 @@ class Bug2Node(Node):
         self.declare_parameter('front_slow_distance',      0.28)  # m; start slowing down
         self.declare_parameter('avoidance_start_distance', 0.25)  # m; trigger avoidance command
         self.declare_parameter('wall_follow_start_distance', 0.24)
-        self.declare_parameter('wall_distance',            0.16)  # desired lateral clearance from wall
-        self.declare_parameter('right_too_close',          0.15)
+        self.declare_parameter('wall_distance',            0.20)  # desired lateral clearance from wall
+        self.declare_parameter('right_too_close',          0.18)  # m; if following left wall and right side is closer than this, consider it a narrow passage and follow wall more tightly
         self.declare_parameter('avoidance_kv',             0.5)
         self.declare_parameter('avoidance_kw',             0.7)
         self.declare_parameter('sensor_timeout',           1.0)
