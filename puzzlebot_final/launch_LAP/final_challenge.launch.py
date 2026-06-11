@@ -275,7 +275,7 @@ def generate_launch_description():
                             description='Arranca monitor ArUco.'),
         DeclareLaunchArgument(
             'route',
-            default_value='0.36,-0.275 ; 0.36, -0.94 ; 0.36,-0.275',  # P1 -P6 -P1 (circular)
+            default_value='0.36,-0.275 ; 0.34, -0.92 ; 0.36,-0.275',  # P1 -P6 -P1 (circular)
             # (0.36, -0.275), #P1 -Spawn
             # (0.36, -0.94), #P2
             # (1.70, -2.04), #P3
