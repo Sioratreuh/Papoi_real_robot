@@ -82,7 +82,7 @@ class Bug2Node(Node):
         self.declare_parameter('goal_pass_lateral_tolerance',  0.05)   # lateral corridor for goal-plane crossing
         self.declare_parameter('goal_priority_distance',       0.35)   # within this dist, only enter wall-follow if truly blocked
         self.declare_parameter('near_goal_slow_distance',      0.25)
-        self.declare_parameter('near_goal_v_max',              0.05)
+        self.declare_parameter('near_goal_v_max',              0.15)
 
         # M-line
         self.declare_parameter('m_line_tolerance',             0.20)   # max perp. distance to M-line to re-enter GO_TO_GOAL
