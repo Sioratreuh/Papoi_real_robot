@@ -85,10 +85,10 @@ class Bug2Node(Node):
         self.declare_parameter('near_goal_v_max',              0.025)
 
         # M-line
-        self.declare_parameter('m_line_tolerance',             0.10)   # max perp. distance to M-line to re-enter GO_TO_GOAL
-        self.declare_parameter('min_hit_separation',           0.35)   # must move this far from hit before left_hit_region=True
+        self.declare_parameter('m_line_tolerance',             0.20)   # max perp. distance to M-line to re-enter GO_TO_GOAL
+        self.declare_parameter('min_hit_separation',           0.15)   # must move this far from hit before left_hit_region=True
         self.declare_parameter('hit_return_tolerance',         0.18)   # within this of hit point → declare full loop
-        self.declare_parameter('m_line_goal_improvement',      0.12)   # must be this much closer than hit_distance to leave wall
+        self.declare_parameter('m_line_goal_improvement',      0.05)   # must be this much closer than hit_distance to leave wall
 
         # Navigation gains
         self.declare_parameter('k_rho',                        0.6)    # distance → forward speed
@@ -98,7 +98,7 @@ class Bug2Node(Node):
         self.declare_parameter('heading_tolerance',            0.15)   # rad; below this → drive forward
         self.declare_parameter('min_forward_speed',            0.02)
         self.declare_parameter('front_stop_distance',          0.18)   # hard stop threshold
-        self.declare_parameter('front_slow_distance',          0.28)   # start slowing down
+        self.declare_parameter('front_slow_distance',          0.24)   # start slowing down
         self.declare_parameter('avoidance_start_distance',     0.30)   # trigger avoidance in GO_TO_GOAL
 
         # Wall following geometry
