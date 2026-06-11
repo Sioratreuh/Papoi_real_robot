@@ -573,7 +573,9 @@ class Bug2Node(Node):
         if self.wall_corner_suppress_until_clear and front_distance >= self.front_stop_distance:
             self.wall_corner_suppress_until_clear = False
         if self.wall_corner_suppress_until_clear:
-            self.smooth_wall_command(msg, 0.0, 0.0)
+            # AQUI ESTA LA MAGIA: En vez de detenerse (0.0, 0.0), sigue girando sobre su eje 
+            # hasta que el frente este libre
+            self.smooth_wall_command(msg, 0.0, away_turn * self.wall_corner_angular_speed)
             return
 
         # Priority 3: front wall → start corner turn
