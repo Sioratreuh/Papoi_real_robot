@@ -79,10 +79,10 @@ class Bug2Node(Node):
         self.declare_parameter('goal_tolerance',               0.05)
         self.declare_parameter('wall_follow_goal_tolerance',   0.08)   # looser capture during WALL_FOLLOWING
         self.declare_parameter('goal_pass_margin',             0.02)   # stop if we move this far past closest approach
-        self.declare_parameter('goal_pass_lateral_tolerance',  0.22)   # lateral corridor for goal-plane crossing
+        self.declare_parameter('goal_pass_lateral_tolerance',  0.05)   # lateral corridor for goal-plane crossing
         self.declare_parameter('goal_priority_distance',       0.35)   # within this dist, only enter wall-follow if truly blocked
-        self.declare_parameter('near_goal_slow_distance',      0.35)
-        self.declare_parameter('near_goal_v_max',              0.025)
+        self.declare_parameter('near_goal_slow_distance',      0.25)
+        self.declare_parameter('near_goal_v_max',              0.05)
 
         # M-line
         self.declare_parameter('m_line_tolerance',             0.20)   # max perp. distance to M-line to re-enter GO_TO_GOAL
@@ -97,19 +97,19 @@ class Bug2Node(Node):
         self.declare_parameter('w_max',                        0.40)
         self.declare_parameter('heading_tolerance',            0.15)   # rad; below this → drive forward
         self.declare_parameter('min_forward_speed',            0.02)
-        self.declare_parameter('front_stop_distance',          0.18)   # hard stop threshold
-        self.declare_parameter('front_slow_distance',          0.24)   # start slowing down
-        self.declare_parameter('avoidance_start_distance',     0.30)   # trigger avoidance in GO_TO_GOAL
+        self.declare_parameter('front_stop_distance',          0.15)   # hard stop threshold
+        self.declare_parameter('front_slow_distance',          0.20)   # start slowing down
+        self.declare_parameter('avoidance_start_distance',     0.25)   # trigger avoidance in GO_TO_GOAL
 
         # Wall following geometry
         self.declare_parameter('wall_follow_start_distance',   0.24)   # obstacle distance that triggers WALL_FOLLOWING
         self.declare_parameter('wall_distance',                0.25)   # desired lateral clearance
-        self.declare_parameter('wall_follow_side',             'right')  # 'right' or 'left'
+        self.declare_parameter('wall_follow_side',             'left')  # 'right' or 'left'
         self.declare_parameter('start_with_wall_acquisition',  False)   # if True, acquire wall on goal reception before navigating
 
         # Wall following control
-        self.declare_parameter('wall_acquire_distance',        0.16)   # must be within this distance to count as acquired
-        self.declare_parameter('wall_too_close',               0.11)   # emergency slow when closer than this
+        self.declare_parameter('wall_acquire_distance',        0.15)   # must be within this distance to count as acquired
+        self.declare_parameter('wall_too_close',               0.16)   # emergency slow when closer than this
         self.declare_parameter('wall_lost_distance',           0.27)   # side distance above which wall is considered lost
         self.declare_parameter('wall_follow_speed',            0.10)
         self.declare_parameter('wall_follow_kp',               1.2)    # proportional gain: side distance error → angular
