@@ -293,7 +293,7 @@ def generate_launch_description():
                             description='Offset inicial Theta para odometría.'),
         DeclareLaunchArgument('bug_type', default_value='bug2', 
                             description='Tipo de bug (bug2 o bug0).'),
-        DeclareLaunchArgument('wall_follow_side', default_value='left', 
+        DeclareLaunchArgument('wall_follow_side', default_value='right', 
                             description='Lado para seguir la pared (left o right).'),
         DeclareLaunchArgument('sensor_timeout', default_value='1.0',
                             description='Segundos sin sensor antes de parar.'),
