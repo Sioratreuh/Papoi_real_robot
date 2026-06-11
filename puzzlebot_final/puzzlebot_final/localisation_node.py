@@ -30,7 +30,7 @@ class PuzzlebotLocalization(Node):
 
         # Robot physical parameters
         self.r = 0.045    # Wheel radius (m)
-        self.l = 0.17   # Wheel separation (m)
+        self.l = 0.19   # Wheel separation (m)
 
         # Current pose
         # Agregar al __init__, antes del timer:

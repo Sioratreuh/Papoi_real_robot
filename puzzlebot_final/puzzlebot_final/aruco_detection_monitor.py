@@ -22,12 +22,13 @@ KNOWN_MARKERS = {
 }
 
 # Transformación cámara → base_footprint
-# Offset desde cámara a base del robot
-CAMERA_TO_BASE_TRANSLATION = (0.0, 0.0, 0.08)  # Offset frontal
+# Camera position in base_footprint frame: (tx=forward, ty=left, tz=up)
+CAMERA_TO_BASE_TRANSLATION = (0.08, 0.0, 0.10)
 
-# Matriz de rotación cámara → base (identidad si la cámara apunta al frente)
+# Camera optical frame (x=right, y=down, z=fwd) → base frame (x=fwd, y=left, z=up)
+# Equals Rz(-90deg) @ Rx(-90deg)
 CAMERA_TO_BASE_ROTATION_MATRIX = np.array([
-    [1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-    [0.0, 0.0, 1.0]
+    [ 0.0,  0.0, 1.0],
+    [-1.0,  0.0, 0.0],
+    [ 0.0, -1.0, 0.0],
 ])

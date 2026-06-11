@@ -122,9 +122,10 @@ class EKFNode(Node):
         self.declare_parameter('camera_offset_x', CAMERA_TO_BASE_TRANSLATION[0])
         self.declare_parameter('camera_offset_y', CAMERA_TO_BASE_TRANSLATION[1])
         self.declare_parameter('camera_offset_z', CAMERA_TO_BASE_TRANSLATION[2])
+        self.declare_parameter('aruco_bearing_std', 0.08)   # rad (~4.5 deg)
         self.declare_parameter('max_marker_distance', 2.0)
         self.declare_parameter('max_aruco_innovation', 1.5)
-        self.declare_parameter('max_aruco_raw_disagreement', 0.0)
+        self.declare_parameter('max_aruco_raw_disagreement', 0.35)
         self.declare_parameter('aruco_measurement_std_x', 0.08)
         self.declare_parameter('aruco_measurement_std_y', 0.08)
         self.declare_parameter('process_noise_x', 0.003)
@@ -151,6 +152,10 @@ class EKFNode(Node):
         self.diagnostic_period = self.get_parameter('diagnostic_period').value
         self.max_prediction_dt = self.get_parameter('max_prediction_dt').value
         self.use_aruco_correction = self.get_parameter('use_aruco_correction').value
+        self.declare_parameter('aruco_covariance_shrink_factor', 0.25)
+        self.aruco_covariance_shrink_factor = max(0.0, min(1.0,
+            self.get_parameter('aruco_covariance_shrink_factor').value))
+        
 
         self.state = np.zeros(3)
         self.sigma = np.diag([
@@ -164,8 +169,8 @@ class EKFNode(Node):
             self.get_parameter('process_noise_theta').value,
         ])
         self.r_aruco = np.diag([
-            self.get_parameter('aruco_measurement_std_x').value ** 2,
-            self.get_parameter('aruco_measurement_std_y').value ** 2,
+            self.get_parameter('aruco_measurement_std_x').value ** 2,   # range noise (m²)
+            self.get_parameter('aruco_bearing_std').value ** 2,          # bearing noise (rad²)
         ])
 
         self.initialized = False
@@ -191,6 +196,9 @@ class EKFNode(Node):
             'EKF Node inicializado: entrada /odom (localisation_node), salida /odom_ekf, '
             f'aruco_pose_source_frame={self.aruco_pose_source_frame}'
         )
+
+    def clamp(self, value, min_value, max_value):
+        return max(min(value, max_value), min_value)
 
     def marker_message_type(self):
         if self.aruco_detection_type == 'aruco_msgs':
@@ -351,113 +359,81 @@ class EKFNode(Node):
         return self.pose_camera_to_robot(pose)
 
     def pose_camera_to_robot(self, pose):
-        position = pose.position
-        orientation = pose.orientation
-        tx, ty, tz = self.camera_to_base_translation
+        """Transform marker position from camera optical frame to base frame
+        using the homogeneous matrix T = [R | t; 0 0 0 1]."""
+        R = CAMERA_TO_BASE_ROTATION_MATRIX
+        t = np.array(self.camera_to_base_translation)
+        p_cam  = np.array([pose.position.x, pose.position.y, pose.position.z])
+        p_base = R @ p_cam + t          # equivalent to (T @ [p;1])[:3]
 
-        robot_position = (
-            position.z + tx,
-            -position.x + ty,
-            -position.y + tz,
-        )
+        o = pose.orientation
         robot_orientation = normalize_quaternion(
-            multiply_quaternions(
-                self.camera_to_base_rotation,
-                (orientation.x, orientation.y, orientation.z, orientation.w),
-            )
-        )
-
-        return {
-            'position': robot_position,
-            'orientation': robot_orientation,
-        }
+            multiply_quaternions(self.camera_to_base_rotation, (o.x, o.y, o.z, o.w)))
+        return {'position': tuple(p_base), 'orientation': robot_orientation}
 
     def correct_with_marker(self, marker):
+        """Range-bearing EKF update. Observes [r, bearing]; bearing makes theta observable."""
         landmark_x, landmark_y = marker['landmark']
-        rel_x, rel_y, _ = marker['marker_in_robot']['position']
-        theta = self.state[2]
-        cos_theta = math.cos(theta)
-        sin_theta = math.sin(theta)
+        rel_x, rel_y, _        = marker['marker_in_robot']['position']
 
-        marker_dx_map = cos_theta * rel_x - sin_theta * rel_y
-        marker_dy_map = sin_theta * rel_x + cos_theta * rel_y
-        measured_robot = np.array([
-            landmark_x - marker_dx_map,
-            landmark_y - marker_dy_map,
+        # Measurement from camera (already in base frame)
+        r_meas    = math.hypot(rel_x, rel_y)
+        beta_meas = math.atan2(rel_y, rel_x)
+
+        # Predicted measurement from current state
+        dx = landmark_x - self.state[0]
+        dy = landmark_y - self.state[1]
+        q  = dx * dx + dy * dy
+        r_pred = math.sqrt(q)
+        if r_pred < 1e-6:
+            return                                   # landmark on top of robot: degenerate
+        beta_pred = normalize_angle(math.atan2(dy, dx) - self.state[2])
+
+        innovation = np.array([
+            r_meas - r_pred,
+            normalize_angle(beta_meas - beta_pred),
         ])
-        raw_delta_text = 'raw_delta=sin_odom'
-        marker_error_text = 'marker_error=sin_odom'
 
-        if self.last_raw_pose is not None:
-            raw_x, raw_y, raw_theta = self.last_raw_pose
-            raw_delta = measured_robot - np.array([raw_x, raw_y])
-            raw_delta_norm = float(np.linalg.norm(raw_delta))
-
-            raw_cos = math.cos(raw_theta)
-            raw_sin = math.sin(raw_theta)
-            marker_from_raw = np.array([
-                raw_x + raw_cos * rel_x - raw_sin * rel_y,
-                raw_y + raw_sin * rel_x + raw_cos * rel_y,
-            ])
-            marker_error = np.array([landmark_x, landmark_y]) - marker_from_raw
-            raw_delta_text = (
-                f'raw_delta=(dx={raw_delta[0]:.3f}, dy={raw_delta[1]:.3f}, '
-                f'norm={raw_delta_norm:.3f})'
-            )
-            marker_error_text = (
-                f'marker_desde_raw=(x={marker_from_raw[0]:.3f}, y={marker_from_raw[1]:.3f}), '
-                f'marker_error=(dx={marker_error[0]:.3f}, dy={marker_error[1]:.3f})'
-            )
-
-            if (
-                    self.max_aruco_raw_disagreement > 0.0 and
-                    raw_delta_norm > self.max_aruco_raw_disagreement):
-                self.last_aruco_status = (
-                    f'id={marker["id"]}, rechazada_raw_disagreement, '
-                    f'dist={marker["distance"]:.3f}, '
-                    f'aruco_robot=(x={rel_x:.3f}, y={rel_y:.3f}), '
-                    f'medicion=(x={measured_robot[0]:.3f}, y={measured_robot[1]:.3f}), '
-                    f'{raw_delta_text}, {marker_error_text}'
-                )
-                return
-
-        h = np.array([
-            self.state[0],
-            self.state[1],
-        ])
-        innovation = measured_robot - h
-        innovation_norm = float(np.linalg.norm(innovation))
-        if innovation_norm > self.max_aruco_innovation:
+        # Gate: reject absurd range disagreement
+        if abs(innovation[0]) > self.max_aruco_innovation:
             self.last_aruco_status = (
-                f'id={marker["id"]}, rechazada_innovacion='
-                f'(x={innovation[0]:.3f}, y={innovation[1]:.3f})'
-            )
+                f'id={marker["id"]}, [REJECTED range_innov={innovation[0]:.3f}m]')
             return
 
+        # Jacobian of h(x) = [range, bearing] wrt [x, y, theta]
         h_jacobian = np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
+            [-dx / r_pred, -dy / r_pred,  0.0],
+            [ dy / q,      -dx / q,      -1.0],   # -1: bearing observes theta directly
         ])
-        s_matrix = h_jacobian @ self.sigma @ h_jacobian.T + self.r_aruco
-        kalman_gain = self.sigma @ h_jacobian.T @ np.linalg.inv(s_matrix)
-        
 
-        correction = kalman_gain @ innovation
-        self.state += correction
+        s_matrix    = h_jacobian @ self.sigma @ h_jacobian.T + self.r_aruco
+        kalman_gain = self.sigma @ h_jacobian.T @ np.linalg.inv(s_matrix)
+        # NOTE: no kalman_gain[2,:]=0 — theta correction is now legitimate
+
+        correction    = kalman_gain @ innovation
+        self.state   += correction
         self.state[2] = normalize_angle(self.state[2])
 
-        identity = np.eye(3)
-        joseph = identity - kalman_gain @ h_jacobian
+        # Joseph form covariance update (numerically stable)
+        identity   = np.eye(3)
+        joseph     = identity - kalman_gain @ h_jacobian
         self.sigma = joseph @ self.sigma @ joseph.T + kalman_gain @ self.r_aruco @ kalman_gain.T
+        
+        # Shrink position uncertainty after correction (must shrink cross terms too
+        # or sigma loses positive-definiteness when off-diagonal terms are non-zero)
+        f = self.aruco_covariance_shrink_factor
+        self.sigma[0:2, 0:2] *= f
+        self.sigma[0:2, 2]   *= f
+        self.sigma[2, 0:2]   *= f
 
         self.last_aruco_status = (
-            f'id={marker["id"]}, dist={marker["distance"]:.3f}, '
-            f'aruco_robot=(x={rel_x:.3f}, y={rel_y:.3f}), '
-            f'medicion=(x={measured_robot[0]:.3f}, y={measured_robot[1]:.3f}), '
-            f'{raw_delta_text}, {marker_error_text}, '
-            f'innovacion=(x={innovation[0]:.3f}, y={innovation[1]:.3f}), '
-            f'correccion=(dx={correction[0]:.3f}, dy={correction[1]:.3f})'
-        )
+            f'id={marker["id"]}, dist={r_meas:.3f}, '
+            f'bearing_meas={math.degrees(beta_meas):.1f}deg, '
+            f'bearing_pred={math.degrees(beta_pred):.1f}deg, '
+            f'innov=(r={innovation[0]:.3f}m, b={math.degrees(innovation[1]):.1f}deg), '
+            f'corr=(dx={correction[0]:.3f}, dy={correction[1]:.3f}, '
+            f'dth={math.degrees(correction[2]):.1f}deg)')
+        
 
     def publish_odometry(self, stamp):
         if self.last_odom_msg is None:
