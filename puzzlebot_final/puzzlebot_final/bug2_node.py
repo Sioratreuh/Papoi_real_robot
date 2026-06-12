@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy, ReliabilityPolicy
@@ -31,9 +32,9 @@ class PureBug2Node(Node):
         self.start_x = self.start_y = 0.0
         self.goal_received = False
         
-        # --- Variables Matemáticas Bug 2 (Diapositivas) ---
+        # --- Variables Matemáticas Bug 2 ---
         self.A = self.B = self.C = self.denom_line = 0.0
-        self.d_hit = float('inf')  # d_GTG(t_H1)
+        self.d_hit = float('inf') 
         
         # --- Datos del LiDAR ---
         self.regions = {'front': 10.0, 'left': 10.0, 'right': 10.0, 'fleft': 10.0, 'fright': 10.0}
@@ -45,13 +46,13 @@ class PureBug2Node(Node):
         self.m_line_tol = 0.10     # Tolerancia para d_line (m)
         self.goal_tol = 0.15       # Tolerancia de llegada a meta (m)
         
-        self.v_max = 0.12
+        self.v_max = 0.10          # Reducido un poco para dar más tiempo de reacción físico
         self.w_max = 0.50
-        self.kp_wall = 1.5         # Ganancia Proporcional para seguir pared
-        self.kp_heading = 1.5      # Ganancia Proporcional para apuntar a la meta
+        self.kp_wall = 1.5         
+        self.kp_heading = 1.5      
 
         self.create_timer(0.05, self.control_loop)  # 20 Hz
-        self.get_logger().info('Pure Bug2 Inicializado basado en modelo matemático.')
+        self.get_logger().info('Pure Bug2 Inicializado. Protección de colisión y paro seguro activos.')
 
     def normalize_angle(self, angle):
         while angle > math.pi: angle -= 2.0 * math.pi
@@ -71,7 +72,6 @@ class PureBug2Node(Node):
         self.start_x = self.x
         self.start_y = self.y
         
-        # M-Line Math (Diapositiva 49): Ax + By + C = 0
         self.A = self.goal_y - self.start_y
         self.B = -(self.goal_x - self.start_x)
         self.C = (self.goal_x * self.start_y) - (self.goal_y * self.start_x)
@@ -79,21 +79,28 @@ class PureBug2Node(Node):
         
         self.goal_received = True
         self.state = 'GO_TO_GOAL'
-        self.get_logger().info(f'Meta Recibida: ({self.goal_x}, {self.goal_y}). M-Line Calculada.')
+        self.get_logger().info(f'Meta Recibida: ({self.goal_x}, {self.goal_y}).')
 
     def scan_callback(self, msg):
-        ranges = [r if (msg.range_min < r < msg.range_max and not math.isnan(r)) else 10.0 for r in msg.ranges]
+        ranges = []
+        for r in msg.ranges:
+            if math.isinf(r) or math.isnan(r) or r > msg.range_max:
+                ranges.append(10.0) # Fuera de rango o sin eco
+            elif r < max(msg.range_min, 0.12):
+                ranges.append(0.01) # [CORRECCIÓN]: Peligro inminente, punto ciego del LiDAR
+            else:
+                ranges.append(r)
         
-        # Dividir el láser en regiones críticas (Índices para RPLiDAR estándar)
         num_rays = len(ranges)
         if num_rays == 0: return
         
-        # Sectores asumiendo 0 grados al frente
         def get_min_in_sector(start_angle, end_angle):
-            # Convierte grados a índices del arreglo
             start_idx = int((start_angle / 360.0) * num_rays)
             end_idx = int((end_angle / 360.0) * num_rays)
-            sector = ranges[start_idx:end_idx] if start_idx < end_idx else ranges[start_idx:] + ranges[:end_idx]
+            if start_idx < end_idx:
+                sector = ranges[start_idx:end_idx]
+            else:
+                sector = ranges[start_idx:] + ranges[:end_idx]
             return min(sector) if sector else 10.0
 
         self.regions = {
@@ -109,7 +116,6 @@ class PureBug2Node(Node):
         return math.hypot(self.goal_x - self.x, self.goal_y - self.y)
         
     def distance_to_m_line(self):
-        # Diapositiva 50
         if self.denom_line == 0: return 0.0
         return abs(self.A * self.x + self.B * self.y + self.C) / self.denom_line
 
@@ -121,7 +127,6 @@ class PureBug2Node(Node):
         msg = Twist()
         d_gtg = self.distance_to_goal()
         
-        # 1. Condición de Victoria
         if d_gtg < self.goal_tol:
             self.state = 'STOP'
             self.cmd_pub.publish(Twist())
@@ -129,22 +134,18 @@ class PureBug2Node(Node):
             self.get_logger().info('¡Meta Alcanzada!')
             return
 
-        # 2. Máquina de Estados
         if self.state == 'GO_TO_GOAL':
-            # ¿Obstáculo enfrente?
             if self.regions['front'] < self.d_stop or self.regions['fleft'] < self.d_stop or self.regions['fright'] < self.d_stop:
-                self.d_hit = d_gtg  # d_GTG(t_H1)
+                self.d_hit = d_gtg 
                 
-                # Decidir CW o CCW (Si está más despejado a la derecha, la pared queda a la izq -> CW)
                 if self.regions['fleft'] < self.regions['fright']:
-                    self.state = 'WALL_FOLLOWING_CW'  # Pared a la izquierda
+                    self.state = 'WALL_FOLLOWING_CW'
                 else:
-                    self.state = 'WALL_FOLLOWING_CCW' # Pared a la derecha
+                    self.state = 'WALL_FOLLOWING_CCW'
                 
-                self.get_logger().info(f'Impacto detectado. d_hit={self.d_hit:.2f}. Cambiando a {self.state}')
+                self.get_logger().info(f'Impacto. d_hit={self.d_hit:.2f}. Estado: {self.state}')
                 
             else:
-                # Comportamiento normal GTG
                 angle_to_goal = math.atan2(self.goal_y - self.y, self.goal_x - self.x)
                 err_theta = self.normalize_angle(angle_to_goal - self.theta)
                 
@@ -152,41 +153,33 @@ class PureBug2Node(Node):
                 if abs(err_theta) < 0.2:
                     msg.linear.x = self.v_max
                 else:
-                    msg.linear.x = 0.0 # Girar en su lugar hasta alinear
+                    msg.linear.x = 0.0 
 
         elif self.state in ['WALL_FOLLOWING_CW', 'WALL_FOLLOWING_CCW']:
-            # Condiciones de salida Bug 2 (Diapositivas 47 y 48)
             d_line = self.distance_to_m_line()
-            
-            # Condición de progreso: Debe estar 'min_progress' más cerca que el punto de choque
             progress_condition = d_gtg < (self.d_hit - self.min_progress)
-            
-            # Solo suelta la pared si la meta no está tapada directamente enfrente
-            angle_to_goal = math.atan2(self.goal_y - self.y, self.goal_x - self.x)
-            err_theta = self.normalize_angle(angle_to_goal - self.theta)
             path_clear = self.regions['front'] > 0.4
             
             if d_line < self.m_line_tol and progress_condition and path_clear:
-                self.get_logger().info(f'M-Line Interceptada (d_line={d_line:.2f}, progreso exitoso). Regresando a GTG.')
+                self.get_logger().info(f'M-Line Interceptada. Regresando a GTG.')
                 self.state = 'GO_TO_GOAL'
             else:
-                # Controlador Proporcional para seguir pared
-                if self.state == 'WALL_FOLLOWING_CW':  # Pared Izquierda
+                if self.state == 'WALL_FOLLOWING_CW': 
                     if self.regions['front'] < self.d_stop:
                         msg.linear.x = 0.0
-                        msg.angular.z = -self.w_max # Girar derecha
+                        msg.angular.z = -self.w_max 
                     else:
                         error = self.regions['left'] - self.d_wall
-                        msg.linear.x = self.v_max * 0.7
+                        msg.linear.x = self.v_max * 0.6  # [CORRECCIÓN] Avanza más lento en las curvas
                         msg.angular.z = max(min(self.kp_wall * error, self.w_max), -self.w_max)
                         
-                elif self.state == 'WALL_FOLLOWING_CCW': # Pared Derecha
+                elif self.state == 'WALL_FOLLOWING_CCW': 
                     if self.regions['front'] < self.d_stop:
                         msg.linear.x = 0.0
-                        msg.angular.z = self.w_max # Girar izquierda
+                        msg.angular.z = self.w_max 
                     else:
                         error = self.d_wall - self.regions['right'] 
-                        msg.linear.x = self.v_max * 0.7
+                        msg.linear.x = self.v_max * 0.6  # [CORRECCIÓN] Avanza más lento en las curvas
                         msg.angular.z = max(min(self.kp_wall * error, self.w_max), -self.w_max)
 
         self.cmd_pub.publish(msg)
@@ -194,9 +187,20 @@ class PureBug2Node(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = PureBug2Node()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Interrupción de teclado detectada. Frenando emergencia...')
+    finally:
+        # [CORRECCIÓN] Bucle de paro seguro para Micro-ROS
+        stop_msg = Twist()
+        for _ in range(5):
+            node.cmd_pub.publish(stop_msg)
+            time.sleep(0.05)  # Da tiempo a que DDS envíe el paquete antes de matar el proceso
+        
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
