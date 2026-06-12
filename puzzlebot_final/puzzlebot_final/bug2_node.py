@@ -152,4 +152,72 @@ class PureBug2Node(Node):
                 angle_to_goal = math.atan2(self.goal_y - self.y, self.goal_x - self.x)
                 err_theta = self.normalize_angle(angle_to_goal - self.theta)
                 
-                msg.angular.z = self.clamp(self.kp_heading * err_
+                msg.angular.z = self.clamp(self.kp_heading * err_theta, -self.w_max, self.w_max)
+                if abs(err_theta) < 0.2:
+                    msg.linear.x = self.v_max
+                else:
+                    msg.linear.x = 0.0 
+
+        elif self.state in ['WALL_FOLLOWING_CW', 'WALL_FOLLOWING_CCW']:
+            d_line = self.distance_to_m_line()
+            progress_condition = d_gtg < (self.d_hit - self.min_progress)
+            path_clear = self.regions['front'] > 0.4
+            
+            # Condición de Salida Estricta (Diapositivas)
+            if d_line < self.m_line_tol and progress_condition and path_clear:
+                self.get_logger().info(f'M-Line Interceptada (Progreso válido). Regresando a GTG.')
+                self.state = 'GO_TO_GOAL'
+            else:
+                # --- CONTROLADORES DE MURO ROBUSTOS ---
+                if self.state == 'WALL_FOLLOWING_CW':  # Pared Izquierda
+                    if self.regions['front'] < self.d_stop or self.regions['fleft'] < self.d_stop * 0.8:
+                        # 1. Esquina Interna: Bloqueo frontal
+                        msg.linear.x = 0.0
+                        msg.angular.z = -self.w_max 
+                    elif self.regions['left'] > self.d_wall + 0.15:
+                        # 2. Esquina Externa: Perdió la pared, gira para buscarla
+                        msg.linear.x = self.v_max * 0.3
+                        msg.angular.z = self.w_max * 0.8
+                    else:
+                        # 3. Muro Recto: Proporcional
+                        error = self.regions['left'] - self.d_wall
+                        msg.linear.x = self.v_max * 0.6 
+                        msg.angular.z = self.clamp(self.kp_wall * error, -self.w_max, self.w_max)
+                        
+                elif self.state == 'WALL_FOLLOWING_CCW': # Pared Derecha
+                    if self.regions['front'] < self.d_stop or self.regions['fright'] < self.d_stop * 0.8:
+                        # 1. Esquina Interna: Bloqueo frontal
+                        msg.linear.x = 0.0
+                        msg.angular.z = self.w_max 
+                    elif self.regions['right'] > self.d_wall + 0.15:
+                        # 2. Esquina Externa: Perdió la pared, gira para buscarla
+                        msg.linear.x = self.v_max * 0.3
+                        msg.angular.z = -self.w_max * 0.8
+                    else:
+                        # 3. Muro Recto: Proporcional
+                        error = self.d_wall - self.regions['right'] 
+                        msg.linear.x = self.v_max * 0.6 
+                        msg.angular.z = self.clamp(self.kp_wall * error, -self.w_max, self.w_max)
+
+        self.cmd_pub.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = PureBug2Node()
+    
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('\n[EMERGENCIA] Ctrl+C detectado. Deteniendo motores...')
+    finally:
+        # [CORRECCIÓN CRÍTICA]: Drenar la cola DDS antes de matar el proceso
+        stop_msg = Twist()
+        for _ in range(10):
+            node.cmd_pub.publish(stop_msg)
+            rclpy.spin_once(node, timeout_sec=0.02)
+        
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
