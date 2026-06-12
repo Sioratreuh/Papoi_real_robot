@@ -35,6 +35,7 @@ class PureBug2Node(Node):
         # --- Variables Matemáticas Bug 2 ---
         self.A = self.B = self.C = self.denom_line = 0.0
         self.d_hit = float('inf') 
+        self.scan_offset = math.radians(0.0)   # offset de montaje del lidar — calibrar abajo
         
         # --- Datos del LiDAR ---
         self.regions = {'front': 10.0, 'left': 10.0, 'right': 10.0, 'fleft': 10.0, 'fright': 10.0}
@@ -84,35 +85,45 @@ class PureBug2Node(Node):
         self.state = 'GO_TO_GOAL'
         self.get_logger().info(f'Meta Recibida: ({self.goal_x:.2f}, {self.goal_y:.2f}).')
 
-    def scan_callback(self, msg):
-        ranges = []
-        for r in msg.ranges:
-            if math.isinf(r) or math.isnan(r) or r > msg.range_max:
-                ranges.append(10.0) 
-            elif r < max(msg.range_min, 0.12):
-                ranges.append(0.01) 
-            else:
-                ranges.append(r)
-        
-        num_rays = len(ranges)
-        if num_rays == 0: return
-        
-        def get_min_in_sector(start_angle, end_angle):
-            start_idx = int((start_angle / 360.0) * num_rays)
-            end_idx = int((end_angle / 360.0) * num_rays)
-            if start_idx < end_idx:
-                sector = ranges[start_idx:end_idx]
-            else:
-                sector = ranges[start_idx:] + ranges[:end_idx]
-            return min(sector) if sector else 10.0
+def scan_callback(self, msg):
+    n = len(msg.ranges)
+    if n == 0:
+        return
 
-        self.regions = {
-            'front':  min(get_min_in_sector(345, 360), get_min_in_sector(0, 15)),
-            'fleft':  get_min_in_sector(15, 70),
-            'left':   get_min_in_sector(70, 110),
-            'fright': get_min_in_sector(290, 345),
-            'right':  get_min_in_sector(250, 290)
-        }
+    sectors = {'front': float('inf'), 'fleft': float('inf'), 'left': float('inf'),
+               'fright': float('inf'), 'right': float('inf')}
+
+    for i, r in enumerate(msg.ranges):
+        # Limpieza de lecturas
+        if math.isinf(r) or math.isnan(r) or r > msg.range_max:
+            d = 10.0
+        elif r < max(msg.range_min, 0.12):
+            d = 0.01
+        else:
+            d = r
+
+        # Ángulo REAL del rayo respecto al frente del robot (0 = frente, + = izquierda)
+        ang = self.normalize_angle(msg.angle_min + i * msg.angle_increment + self.scan_offset)
+        deg = math.degrees(ang)
+
+        if   -15 <= deg <=  15: key = 'front'
+        elif  15 <  deg <=  70: key = 'fleft'
+        elif  70 <  deg <= 110: key = 'left'
+        elif -70 <= deg <  -15: key = 'fright'
+        elif -110 <= deg < -70: key = 'right'
+        else:
+            continue
+
+        if d < sectors[key]:
+            sectors[key] = d
+
+    self.regions = {k: (v if v != float('inf') else 10.0) for k, v in sectors.items()}
+
+    # --- DEBUG de calibración (quítalo cuando ya esté afinado) ---
+    self.get_logger().info(
+        f"F={self.regions['front']:.2f} FL={self.regions['fleft']:.2f} "
+        f"L={self.regions['left']:.2f} FR={self.regions['fright']:.2f} "
+        f"R={self.regions['right']:.2f}", throttle_duration_sec=0.5)
 
     # --- Matemáticas Principales ---
     def distance_to_goal(self):
